@@ -1,0 +1,30 @@
+- name: Creating vimrc.local
+  file:
+    path: "/etc/vim/vimrc.local"
+    state: touch
+
+- name: Nobell for vim
+  copy:
+    dest: /etc/vim/vimrc.local
+    content: |
+      set mouse-=a
+      syntax on
+      set visualbell
+      set t_vb=
+
+- name: Nobell for bash
+  ansible.builtin.lineinfile:
+    path: /etc/inputrc
+    regexp: '^#set bell-style none'
+    line: set bell-style none
+
+- name: Creating less.sh
+  file:
+    path: "/etc/profile.d/less.sh"
+    state: touch
+
+- name: Nobell for less
+  copy:
+    dest: /etc/profile.d/less.sh
+    content: |
+      export LESS="$LESS -Q"
