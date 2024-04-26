@@ -1,0 +1,7 @@
+[Unit]
+Description=Mount for /mnt/storage
+[Mount]
+Type=rclone
+What=storagebox:
+Where=/mnt/storage
+Options=rw,_netdev,allow_other,args2env,vfs-cache-mode=writes,config=/etc/rclone.conf,cache-dir=/var/cache/rclone

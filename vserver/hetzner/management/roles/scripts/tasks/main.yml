@@ -1,0 +1,31 @@
+---
+- name: Copy spacewatch
+  tags:
+    - deploy
+    - scripts
+  ansible.builtin.copy:
+    src: ../files/spacewatch
+    dest: /usr/local/bin/spacewatch
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Cronjob Set MAILTO
+  tags:
+    - deploy
+    - scripts
+  cronvar:
+    name: MAILTO
+    value: "$WHOAMI.{{ mailAddress }}"
+    user: root
+
+- name: Create Cronjob
+  tags:
+    - deploy
+    - scripts
+  ansible.builtin.cron:
+    name: "spacewatch"
+    minute: "*/30"
+    hour: "8-21"
+    job: "/usr/local/bin/spacewatch >/dev/null"
+

@@ -1,0 +1,13 @@
+---
+- name: "Read variables"
+  ansible.builtin.include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - "keys.yml"
+      paths: "files/pubkeys/"
+
+- name: "Deploy SSH-Keys to remote host"
+  ansible.posix.authorized_key:
+    user: root
+    key: "{{ keystodeploy|map(attribute='sshkey')|join('\n') }}"
+    exclusive: true

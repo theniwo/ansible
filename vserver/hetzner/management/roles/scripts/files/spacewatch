@@ -1,0 +1,43 @@
+#!/bin/bash
+# set -x
+# Shell script to monitor or watch the disk space
+# It will send an email to $ADMIN, if the (free available) percentage of space is >= $ALERT.
+# -------------------------------------------------------------------------
+# Set admin email so that you can get email.
+ADMIN="{{ mailAddress }}"
+# set alert level 90% is default
+ALERT=90
+# Exclude list of unwanted monitoring, if several partions then use "|" to separate the partitions.
+# An example: EXCLUDE_LIST="/dev/hdd1|/dev/hdc5|/dev/sdb|/dev/sda4"
+EXCLUDE_LIST="/media|varrun|varlock|udev|lrm|/dev/mmcblk0p1|Ben%|/snap|overlay2|containers|/var/lib/docker/plugins"
+#
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#
+usep=0
+function main_prog() {
+while read output;
+do
+echo $output
+  usep=$(echo $output | awk '{ print $1}' | cut -d'%' -f1)
+  partition=$(echo $output | awk '{print $2}')
+  if [ "$usep" -ge $ALERT ] ; then
+     echo "Running out of disk space \"$partition ($usep%)\" on server $(hostname), $(LANG=en date "+%a %Y.%0m.%d - %H:%M %Z (%:zh UTC)" )" | \
+     mail -s "Alert: Almost out of disk space $partition ($usep%)" $ADMIN
+  elif [ "$usep" -eq 100 ]; then
+     echo "OUT OF DISK SPACE \"$partition ($usep%)\" on server $(hostname), $(LANG=en date "+%a %Y.%0m.%d - %H:%M %Z (%:zh UTC)" )" | \
+     mail -s "RED ALERT: OUT OF DISK SPACE! $partition ($usep%)" $ADMIN
+     if [ $? -eq 0 ]; then
+       echo "Warning mail delivered"
+     else
+       echo "no mail program installed! Install mailutils!"
+     fi
+	# gmessage -center "Alert: Almost out of disk space $usep%"
+  fi
+done
+}
+
+if [ "$EXCLUDE_LIST" != "" ] ; then
+  df -H | grep -vE "^Filesystem|tmpfs|cdrom|${EXCLUDE_LIST}" | awk '{print $5 " " $6}' | main_prog
+else
+  df -H | grep -vE "^Filesystem|tmpfs|cdrom" | awk '{print $5 " " $6}' | main_prog
+fi

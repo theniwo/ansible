@@ -1,0 +1,198 @@
+---
+# PKGS
+- name: Install requirements
+  tags:
+    - deploy
+    - packages
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+    - "{{ pkgs_deb }}"
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Install requirements
+  tags:
+    - deploy
+    - packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - "{{ pkgs_rpm }}"
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+# SYS
+## sysctl
+
+- name: Disable IPv6
+  tags:
+    - deploy
+    - ipv6
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.disable_ipv6
+    value: '1'
+    sysctl_set: true
+    reload: yes
+
+- name: Disable IPv6
+  tags:
+    - deploy
+    - ipv6
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.disable_ipv6
+    value: '1'
+    sysctl_set: true
+    reload: yes
+
+# CFG
+
+- name: Creating /root/.bash_aliases
+  tags:
+    - deploy
+    - cfg
+  file:
+    path: "/root/.bash_aliases"
+    state: touch
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: bash_aliases
+  tags:
+    - deploy
+    - cfg
+  copy:
+    dest: /root/.bash_aliases
+    content: |
+      alias bashrc='source ~/.bashrc'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: VISUAL vim
+  tags:
+    - deploy
+    - cfg
+  ansible.builtin.lineinfile:
+    path: /root/.bash_aliases
+    regexp: '^export VISUAL=vim'
+    line: 'export VISUAL=vim'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: VISUAL vim
+  tags:
+    - deploy
+    - cfg
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^export VISUAL=vim'
+    line: 'export VISUAL=vim'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: EDITOR vim
+  tags:
+    - deploy
+    - cfg
+  ansible.builtin.lineinfile:
+    path: /root/.bash_aliases
+    regexp: '^export EDITOR="$VISUAL"'
+    line: 'export EDITOR="$VISUAL"'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: EDITOR vim
+  tags:
+    - deploy
+    - cfg
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^export EDITOR="$VISUAL"'
+    line: 'export EDITOR="$VISUAL"'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: Alias bashrc
+  tags:
+    - deploy
+    - cfg
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^alias bashrc'
+    line: "alias bashrc='source ~/.bashrc'"
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: Alias df
+  tags:
+    - deploy
+    - cfg
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^alias df'
+    line: "alias df='df --exclude-type=tmpfs --exclude-type=loop --exclude-type=squashfs --exclude-type=overlay'"
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+
+- name: Create /etc/vim directory if it does not exist
+  tags:
+    - deploy
+    - cfg
+  ansible.builtin.file:
+    path: /etc/vim
+    state: directory
+    mode: '0755'
+
+- name: Creating vimrc.local
+  tags:
+    - deploy
+    - cfg
+  file:
+    path: "/etc/vim/vimrc.local"
+    state: touch
+
+- name: Update alternative editor to vim
+  community.general.alternatives:
+    name: editor
+    path: /usr/bin/vim
+  tags:
+    - deploy
+    - cfg
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Nobell for vim
+  tags:
+    - deploy
+    - cfg
+  copy:
+    dest: /etc/vim/vimrc.local
+    content: |
+      set mouse-=a
+      syntax on
+      set visualbell
+      set t_vb=
+
+- name: Nobell for bash
+  tags:
+    - deploy
+    - cfg
+  ansible.builtin.lineinfile:
+    path: /etc/inputrc
+    regexp: '^#set bell-style none'
+    line: set bell-style none
+
+- name: Creating less.sh
+  tags:
+    - deploy
+    - cfg
+  file:
+    path: "/etc/profile.d/less.sh"
+    state: touch
+
+- name: Nobell for less
+  tags:
+    - deploy
+    - cfg
+  copy:
+    dest: /etc/profile.d/less.sh
+    content: |
+      export LESS="$LESS -Q"
+
+# Finishing up
+- name: Reboot and wait 1 min
+  ansible.builtin.reboot:
+    reboot_timeout: 60

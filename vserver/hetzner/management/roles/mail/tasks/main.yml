@@ -1,0 +1,63 @@
+---
+# PKGS
+- name: Install requirements
+  tags:
+    - deploy
+    - mail
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+    - libsasl2-modules
+    - postfix
+    - mailutils
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Install requirements
+  tags:
+    - deploy
+    - mail
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - cyrus-sasl-plain
+    - postfix
+    - s-nail
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+
+- name: Create directory if it does not exist
+  ansible.builtin.file:
+    path: /etc/postfix
+    state: directory
+    mode: '0755'
+
+- name: Copy sasl_passwd
+  ansible.builtin.template:
+    src: sasl_passwd.j2
+    dest: /etc/postfix/sasl_passwd
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Copy main.cf
+  ansible.builtin.template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Hash password
+  ansible.builtin.shell: "postmap hash:/etc/postfix/sasl_passwd"
+
+- name: Restart postfix
+  ansible.builtin.service:
+    name: postfix
+    state: restarted
+
+- name: Send test mail
+  ansible.builtin.shell: echo "Ansible has installed mail capabilities at $(date '+%D %T') on $(hostname)" | mail -s "Ansible has installed mail capabilities on $(hostname)" {{ mailAddress }}
+

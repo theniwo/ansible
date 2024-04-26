@@ -1,0 +1,15 @@
+pkgs_deb:
+  - bash-completion
+  - byobu
+  - plocate
+  - vim
+  - fail2ban
+  - ncdu
+pkgs_rpm:
+  - bash-completion
+  - byobu
+  - plocate
+  - vim
+  - crontabs
+  - fail2ban
+  - ncdu

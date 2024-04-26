@@ -1,0 +1,29 @@
+---
+- hosts: deploy
+  become: true
+  become_user: root
+  environment:
+    LC_ALL: C
+    LANG: C
+  pre_tasks:
+    - name: "Load list of packages"
+      tags:
+        - deploy
+        - packages
+      ansible.builtin.include_vars:
+        file: vars/pkgs.yml
+  roles:
+    - role: deploy
+      tags: deploy
+    - role: storagebox
+      tags: storagebox
+    - role: docker
+      tags: docker
+    - role: mail
+      tags: mail
+    - role: scripts
+      tags: scripts
+    #- role: podman
+      #tags: podman
+    #- role: apache
+      #tags: apache

@@ -1,0 +1,220 @@
+---
+- name: Remove old docker installations
+  apt:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - docker.io
+    - docker-doc
+    - docker-compose
+    - docker-compose-v2
+    - podman-docker
+    - containerd
+    - runc
+  ignore_errors: true
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Remove old docker installations
+  yum:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - docker
+    - docker-client
+    - docker-client-latest
+    - docker-common
+    - docker-latest
+    - docker-latest-logrotate
+    - docker-logrotate
+    - docker-selinux
+    - docker-engine-selinux
+    - docker-engine
+  ignore_errors: true
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: Install requirements
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+    - ca-certificates
+    - curl
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Install requirements
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - dnf-plugins-core
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: install docker repository
+  ansible.builtin.command: dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+#- name: Add docker repository
+  #ansible.builtin.yum_repository:
+    #name: docker-ce
+    #description: "Docker CE"
+    #baseurl: https://download.docker.com/linux/$release/docker-ce.repo
+  #when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: Add Docker's official GPG key
+  ansible.builtin.shell: install -m 0755 -d /etc/apt/keyrings && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && chmod a+r /etc/apt/keyrings/docker.asc
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+#- name: Debug message
+  #ansible.builtin.debug:
+    #msg: "{{ [ansible_architecture] | map('extract', deb_architecture) | first }}"
+  #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+#- name: Add the repository to Apt sources
+  #ansible.builtin.apt_repository:
+    #repo: deb [arch={{ [ansible_architecture] | map('extract', deb_architecture) | first }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/{{ ansible_system | lower }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
+  #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Add the repository to Apt sources
+  ansible.builtin.shell: |
+    echo  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+#- name: Copy apt sources file
+  #ansible.builtin.template:
+    #src: docker.list.j2
+    #dest: /etc/apt/sources.list.d/docker.list
+    #owner: root
+    #group: root
+    #mode: '0644'
+  #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Install docker-ce
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: true
+  with_items:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - docker-buildx-plugin
+    - docker-compose-plugin
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Install docker-ce
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - docker-buildx-plugin
+    - docker-compose-plugin
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: (re)start docker
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+  # use on stupid vservers like 1blue
+#- name: Copy deamon.json
+  #ansible.builtin.template:
+    #src: daemon.json.j2
+    #dest: /etc/docker/daemon.json
+    #owner: root
+    #group: root
+    #mode: '0644'
+
+# Mounts if present
+#- name: Mount docker-volumes
+#  tags:
+#    - deploy
+#    - mounts
+#  ansible.posix.mount:
+#    src: '/dev/mapper/vgdata-docker'
+#    path: '/var/lib/docker/volumes'
+#    opts: defaults
+#    boot: true
+#    state: mounted
+#    fstype: ext4
+
+- name: Create /var/lib/docker-plugins/rclone/config
+  ansible.builtin.file:
+    path: /var/lib/docker-plugins/rclone/config
+    state: directory
+    mode: '0755'
+    recurse: true
+
+- name: Create /var/lib/docker-plugins/rclone/cache
+  ansible.builtin.file:
+    path: /var/lib/docker-plugins/rclone/cache
+    state: directory
+    mode: '0755'
+    recurse: true
+
+- name: Install latest rclone docker pluging
+  ansible.builtin.shell: |
+    docker plugin install rclone/docker-volume-rclone:amd64 args="-v" --alias rclone --grant-all-permissions
+  ignore_errors: True
+
+- name: Create a symbolic link for docker-plugin rclone
+  ansible.builtin.file:
+    src: /etc/rclone.conf
+    dest: /var/lib/docker-plugins/rclone/config/rclone.conf
+    owner: root
+    group: root
+    state: hard
+
+- name: Create directories for docker files
+  ansible.builtin.file:
+    path: /root/docker/docker
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+    recurse: yes
+
+- name: Create directories for docker-compose files
+  ansible.builtin.file:
+    path: /root/docker/docker-compose
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+    recurse: yes
+
+- name: copy cont command
+  ansible.builtin.copy:
+    src: ../files/cont
+    dest: /usr/local/bin/cont
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: copy comp command
+  ansible.builtin.copy:
+    src: ../files/comp
+    dest: /usr/local/bin/comp
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: copy dockerrc
+  ansible.builtin.copy:
+    src: ../files/dockerrc
+    dest: $HOME/.dockerrc
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Insert source command to .bashrc
+  ansible.builtin.blockinfile:
+    path: $HOME/.bashrc
+    block: |
+      if [ -f $HOME/.dockerrc ]; then
+        . $HOME/.dockerrc
+      fi

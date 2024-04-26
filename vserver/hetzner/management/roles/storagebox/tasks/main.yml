@@ -1,0 +1,147 @@
+---
+# PKGS
+- name: Install requirements
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+    - rclone
+    - fuse3
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Install requirements
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - rclone
+    - fuse
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: Install latest rclone version
+  ansible.builtin.shell: |
+    curl https://rclone.org/install.sh | bash
+  ignore_errors: True
+
+
+# CFG
+- name: Create /mnt/storage directory
+  ansible.builtin.file:
+    path: /mnt/storage
+    state: directory
+    mode: '0755'
+    recurse: true
+
+- name: Create /mnt/DATA directory
+  ansible.builtin.file:
+    path: /mnt/DATA
+    state: directory
+    mode: '0755'
+    recurse: true
+
+- name: Create /mnt/MEDIA directory
+  ansible.builtin.file:
+    path: /mnt/MEDIA
+    state: directory
+    mode: '0755'
+    recurse: true
+
+- name: Create cache directory
+  ansible.builtin.file:
+    path: /var/cache/rclone
+    owner: root
+    group: root
+    state: directory
+    recurse: yes
+
+- name: Copy rclone config
+  ansible.builtin.copy:
+    src: ../files/rclone.conf
+    dest: /etc/rclone.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create a symbolic link for mount.rclone
+  ansible.builtin.file:
+    src: /usr/bin/rclone
+    dest: /usr/sbin/mount.rclone
+    owner: root
+    group: root
+    state: link
+
+- name: Create a symbolic link for fuser
+  ansible.builtin.file:
+    src: /usr/bin/fusermount3
+    dest: /usr/bin/fusermount
+    owner: root
+    group: root
+    state: link
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+  ignore_errors: True
+
+
+
+    #- name: Systemd Unit mnt-storage.mount
+    #  ansible.builtin.template:
+    #    src: mnt-storage.mount.j2
+    #    dest: /etc/systemd/system/mnt-storage.mount
+    #    owner: root
+    #    group: root
+    #    mode: '0644'
+    #
+    #- name: Systemd Unit mnt-storage.mount
+    #  ansible.builtin.systemd_service:
+    #    state: started
+    #    name: mnt-storage.mount
+    #    daemon_reload: true
+
+#- name: Systemd Unit mnt-storage.automount
+  #ansible.builtin.template:
+    #src: mnt-storage.automount.j2
+    #dest: /etc/systemd/system/mnt-storage.automount
+    #owner: root
+    #group: root
+    #mode: '0644'
+#
+#- name: Systemd Unit mnt-storage.automount
+  #ansible.builtin.systemd_service:
+    #state: started
+    #name: mnt-storage.automount
+    #daemon_reload: true
+
+- name: Mount storage
+  ansible.posix.mount:
+    src: 'storagebox:'
+    path: /mnt/storage
+    #opts: rw,noauto,nofail,_netdev,x-systemd.automount,args2env,vfs_cache_mode=writes,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
+    opts: rw,nofail,_netdev,args2env,vfs_cache_mode=writes,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
+    boot: true
+    state: mounted
+    fstype: rclone
+
+- name: Mount storage DATA
+  tags:
+    - data
+  ansible.posix.mount:
+    src: 'data:'
+    path: /mnt/DATA
+    #opts: rw,noauto,nofail,_netdev,x-systemd.automount,args2env,vfs_cache_mode=writes,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
+    opts: rw,nofail,_netdev,args2env,vfs_cache_mode=writes,vfs_cache_max_size=15G,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
+    boot: true
+    state: mounted
+    fstype: rclone
+
+- name: Mount storage MEDIA
+  tags:
+    - media
+  ansible.posix.mount:
+    src: 'media:'
+    path: /mnt/MEDIA
+    #opts: rw,noauto,nofail,_netdev,x-systemd.automount,args2env,vfs_cache_mode=writes,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
+    opts: rw,nofail,_netdev,args2env,vfs_cache_mode=writes,vfs_cache_max_size=15G,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
+    boot: true
+    state: mounted
+    fstype: rclone
+

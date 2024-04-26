@@ -1,0 +1,12 @@
+---
+- name: "Update package list"
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: "List upgradable packages"
+  ansible.builtin.shell: "apt list --upgradable 2>/dev/null | grep security 2>/dev/null || echo 'No updates!'"
+  register: "updates"
+
+- name: "Output pending security updates"
+  ansible.builtin.debug:
+    msg: "{{ updates.stdout_lines | select('contains', 'security') }}"
