@@ -187,6 +187,21 @@
     mode: 0775
     recurse: yes
 
+- name: copy healthcheck_docker
+  ansible.builtin.copy:
+    src: ../files/healthcheck_docker
+    dest: /usr/local/bin/healthcheck_docker
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create Cronjob
+  ansible.builtin.cron:
+    name: "healthcheck_docker"
+    minute: "*/30"
+    hour: "8-21"
+    job: "/usr/local/bin/healthcheck_docker >/dev/null"
+
 - name: copy cont command
   ansible.builtin.copy:
     src: ../files/cont
