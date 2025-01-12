@@ -1,0 +1,107 @@
+---
+# CFG
+# unattended-upgrades
+- name: No regular Updates
+  tags:
+    - deploy
+    - cfg
+    - unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^        "${distro_id}:${distro_codename}";'
+    line: '//        "${distro_id}:${distro_codename}";'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: AutoFixInterruptedDpkg
+  tags:
+    - deploy
+    - cfg
+    - unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//Unattended-Upgrade::AutoFixInterruptedDpkg "true";'
+    line: 'Unattended-Upgrade::AutoFixInterruptedDpkg "true";'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Mail
+  tags:
+    - deploy
+    - cfg
+    - unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//Unattended-Upgrade::Mail "";'
+    line: '//Unattended-Upgrade::Mail "$HOSTNAME@REDACTED";'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: MailReport
+  tags:
+    - deploy
+    - cfg
+    - unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//Unattended-Upgrade::MailReport "on-change";'
+    line: 'Unattended-Upgrade::MailReport "on-change";'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Remove-Unused-Kernel-Packages
+  tags:
+    - deploy
+    - cfg
+    - unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";'
+    line: 'Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Remove-New-Unused-Dependencies
+  tags:
+    - deploy
+    - cfg
+    - unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//Unattended-Upgrade::Remove-New-Unused-Dependencies "true";'
+    line: 'Unattended-Upgrade::Remove-New-Unused-Dependencies "true";'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Remove-Unused-Dependencies
+  tags:
+    - deploy
+    - cfg
+    - unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//Unattended-Upgrade::Remove-Unused-Dependencies "false";'
+    line: 'Unattended-Upgrade::Remove-Unused-Dependencies "true";'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Automatic-Reboot
+  tags:
+    - deploy
+    - cfg
+    - unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//Unattended-Upgrade::Automatic-Reboot "false";'
+    line: 'Unattended-Upgrade::Automatic-Reboot "true";'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Automatic-Reboot-Time
+  tags:
+    - deploy
+    - cfg
+    - unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//Unattended-Upgrade::Automatic-Reboot-Time "02:00";'
+    line: 'Unattended-Upgrade::Automatic-Reboot-Time "04:00";'
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: "Ensure unattended-upgrades is running"
+  ansible.builtin.systemd:
+    name: unattended-upgrades
+    state: started
+  when: "'unattended-upgrades' in group_names"
