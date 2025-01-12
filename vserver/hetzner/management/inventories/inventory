@@ -1,4 +1,7 @@
 [all:vars]
+ansible_user='root'
+ansible_become=yes
+ansible_become_method=sudo
 ansible_python_interpreter=/usr/bin/python3
 
 [all]
@@ -6,7 +9,7 @@ ansible_python_interpreter=/usr/bin/python3
 [deploy]
 
 [patch]
-hserver
 
 [docker]
-hserver
+
+[storage]
