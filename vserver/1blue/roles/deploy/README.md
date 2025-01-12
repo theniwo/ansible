@@ -1,7 +1,7 @@
 Role Name
 =========
 
-A brief description of the role goes here.
+Deploy a vserver with all neccessary tools and accounts
 
 Requirements
 ------------
