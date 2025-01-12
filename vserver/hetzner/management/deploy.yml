@@ -23,6 +23,11 @@
       tags: mail
     - role: scripts
       tags: scripts
+    - role: unattended-upgrades
+      tags: unattended-upgrades
+    - role: patchmanagement
+    - role: checkservices
+      tags: checkservices
     #- role: podman
       #tags: podman
     #- role: apache
