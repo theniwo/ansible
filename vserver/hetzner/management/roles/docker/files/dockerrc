@@ -1,6 +1,6 @@
 export d_docker_comp='/root/docker/docker-compose'
 export d_docker_cont='/root/docker/docker'
-alias dockerps='while true; do clear && nice docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | (read -r; printf "%s\n" "$REPLY"; sort -k 1 ) && sleep 2; done'
+alias dockerps='while true; do clear && nice docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | (read -r; printf "%s\n" "$REPLY"; sort -k 1 ) | cut -c-$(tput cols) && sleep 2; done'
 alias dockerstats='while true; do nice docker stats --format "table {{.Name}}\t{{.CPUPerc}}  |  {{.MemPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}"; done'
 # Set own bash completion
 #cont
