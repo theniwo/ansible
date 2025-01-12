@@ -31,7 +31,9 @@
 
     - name: Check if a reboot is required
       register: reboot_required_file
-      ansible.builtin.stat: path=/var/run/reboot-required get_md5=no
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+        checksum_algorithm: sha1
 
     - name: Reboot and wait up to 5 min
       ansible.builtin.reboot:
@@ -42,6 +44,7 @@
     - name: reboot time
       debug:
         msg: "{{ ansible_hostname }} rebooted in {{ reboot_result.elapsed }} seconds."
+      when: reboot_result is defined and 'elapsed' in reboot_result
 
 # rpm Part
 - when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
