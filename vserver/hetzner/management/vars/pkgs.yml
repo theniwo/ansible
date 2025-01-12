@@ -1,15 +1,17 @@
 pkgs_deb:
   - bash-completion
   - byobu
+  - fail2ban
+  - moreutils
+  - ncdu
   - plocate
   - vim
-  - fail2ban
-  - ncdu
 pkgs_rpm:
   - bash-completion
   - byobu
-  - plocate
-  - vim
   - crontabs
   - fail2ban
+  - moreutils
   - ncdu
+  - plocate
+  - vim
