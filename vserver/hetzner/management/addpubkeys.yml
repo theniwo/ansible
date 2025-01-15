@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: keys
   remote_user: root
   roles:
     - role: user_mgmt
