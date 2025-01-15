@@ -6,23 +6,34 @@
     LC_ALL: C
     LANG: C
   pre_tasks:
+
     - name: "Load list of packages"
       tags:
         - deploy
         - packages
       ansible.builtin.include_vars:
-        file: vars/pkgs.yml
+        file: pkgs.yml
+
+    - name: "Set Swap Size"
+      tags:
+        - deploy
+        - swap
+      ansible.builtin.include_vars:
+        file: swap.yml
+
   roles:
     - role: deploy
       tags: deploy
+    - role: swap
+      tags: swap
     - role: storagebox
       tags: storagebox
     - role: docker
       tags: docker
-    - role: mail
-      tags: mail
     - role: scripts
       tags: scripts
+    - role: mail
+      tags: mail
     - role: unattended-upgrades
       tags: unattended-upgrades
     - role: patchmanagement
