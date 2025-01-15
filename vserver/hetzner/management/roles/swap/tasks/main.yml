@@ -1,13 +1,7 @@
-#- name: set swap_file variable
-  #tags:
-    #- deploy
-    #- swap
-  #set_fact:
-    #swap_file: /{{ swap_file }}
 - name: Gathering Facts
   ansible.builtin.setup:
 
-- name: check if swap file exists
+- name: Check if swap file exists
   tags:
     - deploy
     - swap
@@ -15,7 +9,7 @@
     path: "{{ swap_file }}"
   register: swap_file_check
 
-- name: create swap file
+- name: Create swap file
   tags:
     - deploy
     - swap
@@ -29,7 +23,7 @@
   command: dd if=/dev/zero of={{ swap_file }} bs=1G count={{ swap_space }}
   when: ansible_facts.memswap is defined and ansible_facts.memswap.total > 0 and swap_file_check.stat.exists
 
-- name: set permissions on swap file
+- name: Set permissions on swap file
   tags:
     - deploy
     - swap
@@ -38,14 +32,14 @@
     mode: 0600
   when: swap_file_check.stat.exists
 
-- name: format swap file
+- name: Format swap file
   tags:
     - deploy
     - swap
   command: mkswap {{ swap_file }}
   when: ansible_facts.memswap is defined and ansible_facts.memswap.total > 0 and swap_file_check.stat.exists
 
-- name: add to fstab
+- name: Add to fstab
   tags:
     - deploy
     - swap
@@ -54,16 +48,14 @@
     regexp: "{{ swap_file }}"
     line: "{{ swap_file }} none swap sw 0 0"
 
-- name: turn on swap
+- name: Turn on swap
   tags:
     - deploy
     - swap
   command: swapon -a
-  #when: ansible_facts.memswap is not defined or ansible_facts.swaptotal_mb == 0
-  when: ansible_swaptotal_mb == 0
+  when: ansible_facts.swaptotal_mb is not defined or ansible_swaptotal_mb == 0
 
-
-- name: set swapiness
+- name: Set swapiness
   tags:
     - deploy
     - swap

@@ -1,2 +1,3 @@
 swap_space: 4
 swap_swappiness: 50
+swap_file: /swapfile
