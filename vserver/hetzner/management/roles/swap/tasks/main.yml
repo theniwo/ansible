@@ -1,0 +1,66 @@
+- name: set swap_file variable
+  tags:
+    - deploy
+    - swap
+  set_fact:
+    swap_file: /swapfile
+
+- name: check if swap file exists
+  tags:
+    - deploy
+    - swap
+  stat:
+    path: "{{ swap_file }}"
+  register: swap_file_check
+
+- name: create swap file
+  tags:
+    - deploy
+    - swap
+  command: fallocate -l {{ swap_space }}G {{ swap_file }}
+  when: not swap_file_check.stat.exists
+
+#- name: Create swap space
+  #tags:
+    #- deploy
+    #- swap
+  #command: dd if=/dev/zero of={{ swap_file }} bs=1G count={{ swap_space }}
+  #when: not swap_file_check.stat.exists
+
+- name: set permissions on swap file
+  tags:
+    - deploy
+    - swap
+  file:
+    path: "{{ swap_file }}"
+    mode: 0600
+
+- name: format swap file
+  tags:
+    - deploy
+    - swap
+  command: mkswap {{ swap_file }}
+  when: not swap_file_check.stat.exists
+
+- name: add to fstab
+  tags:
+    - deploy
+    - swap
+  lineinfile:
+    dest: /etc/fstab
+    regexp: "{{ swap_file }}"
+    line: "{{ swap_file }} none swap sw 0 0"
+
+- name: turn on swap
+  tags:
+    - deploy
+    - swap
+  command: swapon -a
+
+- name: set swapiness
+  tags:
+    - deploy
+    - swap
+  sysctl:
+    name: vm.swappiness
+    value: "{{ swap_swappiness }}"
