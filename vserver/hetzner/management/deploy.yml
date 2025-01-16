@@ -33,6 +33,12 @@
       tags: deploy
     - role: swap
       tags: swap
+    - role: locale
+      tags: locale
+    - role: sshd
+      tags: sshd
+    - role: user
+      tags: user
     - role: storagebox
       tags: storagebox
     - role: docker
@@ -41,12 +47,6 @@
       tags: scripts
     - role: mail
       tags: mail
-    - role: locale
-      tags: locale
-    - role: sshd
-      tags: sshd
-    - role: user
-      tags: user
     - role: unattended-upgrades
       tags: unattended-upgrades
     - role: patchmanagement
