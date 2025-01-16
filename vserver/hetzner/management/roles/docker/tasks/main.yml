@@ -52,7 +52,17 @@
 
 - name: install docker repository
   ansible.builtin.command: dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+  when:
+    #- ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+    - ansible_distribution == 'Fedora'
+    - ansible_distribution_major_version <= '40'
+
+- name: install docker repository
+  ansible.builtin.command: dnf config-manager addrepo https://download.docker.com/linux/fedora/docker-ce.repo
+  when:
+    - ansible_distribution == 'Fedora'
+    - ansible_distribution_major_version > '40'
+  #when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora' and ansible_distribution_major_version > 40
 
 #- name: Add docker repository
   #ansible.builtin.yum_repository:
