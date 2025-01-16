@@ -9,35 +9,55 @@
     path: "{{ swap_file }}"
   register: swap_file_check
 
+- name: Check swap file size
+  tags:
+    - deploy
+    - swap
+  stat:
+    path: "{{ swap_file }}"
+  register: swap_file_size
+
 - name: Create swap file
-  tags:
-    - deploy
-    - swap
-  command: fallocate -l {{ swap_space }}G {{ swap_file }}
-  when: ansible_facts.memswap is defined and ansible_facts.memswap.total > 0 and swap_file_check.stat.exists
-
-- name: Create swap space
-  tags:
-    - deploy
-    - swap
-  command: dd if=/dev/zero of={{ swap_file }} bs=1G count={{ swap_space }}
-  when: ansible_facts.memswap is defined and ansible_facts.memswap.total > 0 and swap_file_check.stat.exists
-
-- name: Set permissions on swap file
   tags:
     - deploy
     - swap
   file:
     path: "{{ swap_file }}"
+    state: touch
     mode: 0600
-  when: swap_file_check.stat.exists
+  when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and not swap_file_check.stat.exists
+  #when: ansible_facts.memswap is not defined and ansible_facts.memswap.total == 0 and swap_file_check.stat.exists
+
+- name: Allocate swap file
+  tags:
+    - deploy
+    - swap
+  command: fallocate -l {{ swap_space }}G {{ swap_file }}
+  when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and swap_file_check.stat.exists and swap_file_check.stat.size == 0
+  #when: ansible_facts.memswap is not defined and ansible_facts.memswap.total == 0 and swap_file_check.stat.exists
+
+- name: Check swap file size
+  tags:
+    - deploy
+    - swap
+  stat:
+    path: "{{ swap_file }}"
+  register: swap_file_size
+
+- name: Zero swap space
+  tags:
+    - deploy
+    - swap
+  command: dd if=/dev/zero of={{ swap_file }} bs=1G count={{ swap_space }}
+  when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and swap_file_check.stat.exists and swap_file_size.stat.size > 0
+  #when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and swap_file_check.stat.exists
 
 - name: Format swap file
   tags:
     - deploy
     - swap
   command: mkswap {{ swap_file }}
-  when: ansible_facts.memswap is defined and ansible_facts.memswap.total > 0 and swap_file_check.stat.exists
+  when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and swap_file_check.stat.exists and swap_file_size.stat.size > 0
 
 - name: Add to fstab
   tags:
@@ -48,14 +68,31 @@
     regexp: "{{ swap_file }}"
     line: "{{ swap_file }} none swap sw 0 0"
 
+#- name: Show file size
+  #debug:
+    #msg: "File size is {{ swap_file_check.stat.size }} bytes"
+#
+#- name: Show file size 2
+  #debug:
+    #msg: "File size is {{ swap_file_size.stat.size }} bytes"
+
+- name: Set permissions on swap file
+  tags:
+    - deploy
+    - swap
+  file:
+    path: "{{ swap_file }}"
+    mode: 0600
+  when: swap_file_check.stat.exists and swap_file_size.stat.size > 0
+
 - name: Turn on swap
   tags:
     - deploy
     - swap
   command: swapon -a
-  when: ansible_facts.swaptotal_mb is not defined or ansible_swaptotal_mb == 0
+  when: ansible_facts.swaptotal_mb is not defined or ansible_swaptotal_mb == 0 and swap_file_size.stat.size > 0
 
-- name: Set swapiness
+- name: Set swappiness
   tags:
     - deploy
     - swap
