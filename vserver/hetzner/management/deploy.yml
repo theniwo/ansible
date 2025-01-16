@@ -2,9 +2,9 @@
 - hosts: deploy
   become: true
   become_user: root
-  environment:
-    LC_ALL: C
-    LANG: C
+  #environment:
+    #LC_ALL: C
+    #LANG: C
   pre_tasks:
 
     - name: "Load list of packages"
@@ -21,6 +21,13 @@
       ansible.builtin.include_vars:
         file: swap.yml
 
+    - name: "Set User Vars"
+      tags:
+        - deploy
+        - user
+      ansible.builtin.include_vars:
+        file: user.yml
+
   roles:
     - role: deploy
       tags: deploy
@@ -34,6 +41,12 @@
       tags: scripts
     - role: mail
       tags: mail
+    - role: locale
+      tags: locale
+    - role: sshd
+      tags: sshd
+    - role: user
+      tags: user
     - role: unattended-upgrades
       tags: unattended-upgrades
     - role: patchmanagement
