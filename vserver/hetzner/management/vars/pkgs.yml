@@ -5,6 +5,7 @@ pkgs_deb:
   - moreutils
   - ncdu
   - plocate
+  - unzip
   - vim
 pkgs_rpm:
   - bash-completion
@@ -14,4 +15,5 @@ pkgs_rpm:
   - moreutils
   - ncdu
   - plocate
+  - unzip
   - vim
