@@ -2,11 +2,11 @@
 - hosts: deploy
   become: true
   become_user: root
-  #environment:
-    #LC_ALL: C
-    #LANG: C
-  pre_tasks:
+  environment:
+    LC_ALL: C
+    LANG: C
 
+  pre_tasks:
     - name: "Load list of packages"
       tags:
         - deploy
