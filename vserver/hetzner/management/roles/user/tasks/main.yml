@@ -1,0 +1,56 @@
+- tags:
+  - deploy
+  - user
+  block:
+    - name: Add user "{{ user }}"
+      ansible.builtin.user:
+        name: "{{ user }}"
+        password: "{{ user_passwd }}"
+        state: present
+        shell: /bin/bash
+        comment: "User only for tty login"
+
+    - name: Add user "{{ user }}" to sudoers
+      ansible.builtin.user:
+        name: "{{ user }}"
+        groups: sudo
+        append: yes
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+    - name: Add user "{{ user }}" to wheel
+      ansible.builtin.user:
+        name: "{{ user }}"
+        groups: wheel
+        append: yes
+      when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+    - name: Ensure config directory exists
+      ansible.builtin.file:
+        path: /etc/ssh/sshd_config.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create SSH configuration file for denying user "{{ user }}"
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/deny_user.conf
+        content: |
+          # Don't allow "{{ user }}" to login with ssh
+          DenyUsers "{{ user }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Include config.d directory in main configuration
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Include /etc/ssh/sshd_config.d/\*\.conf'
+        line: 'Include /etc/ssh/sshd_config.d/*.conf'
+        state: present
+
+    - name: Restart SSH service to apply changes
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
+
