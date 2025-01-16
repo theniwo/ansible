@@ -53,7 +53,7 @@
   register: swap_file_check
   changed_when: false
 
-- name: Zero swap space
+- name: Zeroing swap space
   tags:
     - deploy
     - swap
