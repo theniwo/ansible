@@ -49,8 +49,15 @@
         line: 'Include /etc/ssh/sshd_config.d/*.conf'
         state: present
 
-    - name: Restart SSH service to apply changes
+    - name: Restart SSH service to apply changes (Fedora)
       ansible.builtin.service:
         name: sshd
         state: restarted
+      when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+    - name: Restart SSH service to apply changes (Ubuntu)
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
