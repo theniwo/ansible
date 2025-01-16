@@ -1,23 +1,24 @@
 - name: Gathering Facts
   ansible.builtin.setup:
 
-- name: Check if swap file exists
+- name: Gathering Facts of swapfile "{{ swap_file }}"
   tags:
     - deploy
     - swap
   stat:
     path: "{{ swap_file }}"
   register: swap_file_check
+  changed_when: false
 
-- name: Check swap file size
+- name: Get the list of swap files
   tags:
     - deploy
     - swap
-  stat:
-    path: "{{ swap_file }}"
-  register: swap_file_size
+  command: swapon -s
+  register: swap_file_list
+  changed_when: false
 
-- name: Create swap file
+- name: Create swap file "{{ swap_file }}"
   tags:
     - deploy
     - swap
@@ -25,39 +26,55 @@
     path: "{{ swap_file }}"
     state: touch
     mode: 0600
-  when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and not swap_file_check.stat.exists
-  #when: ansible_facts.memswap is not defined and ansible_facts.memswap.total == 0 and swap_file_check.stat.exists
+  when: not swap_file_check.stat.exists
+
+- name: Gathering Facts of swapfile "{{ swap_file }}"
+  tags:
+    - deploy
+    - swap
+  stat:
+    path: "{{ swap_file }}"
+  register: swap_file_check
+  changed_when: false
 
 - name: Allocate swap file
   tags:
     - deploy
     - swap
   command: fallocate -l {{ swap_space }}G {{ swap_file }}
-  when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and swap_file_check.stat.exists and swap_file_check.stat.size == 0
-  #when: ansible_facts.memswap is not defined and ansible_facts.memswap.total == 0 and swap_file_check.stat.exists
+  when: swap_file_check.stat.exists and swap_file_check.stat.size == 0
 
-- name: Check swap file size
+- name: Gathering Facts of swapfile "{{ swap_file }}"
   tags:
     - deploy
     - swap
   stat:
     path: "{{ swap_file }}"
-  register: swap_file_size
+  register: swap_file_check
+  changed_when: false
 
 - name: Zero swap space
   tags:
     - deploy
     - swap
   command: dd if=/dev/zero of={{ swap_file }} bs=1G count={{ swap_space }}
-  when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and swap_file_check.stat.exists and swap_file_size.stat.size > 0
-  #when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and swap_file_check.stat.exists
+  when: swap_file_check.stat.exists and swap_file_check.stat.size > 0 and not swap_file in swap_file_list.stdout
+
+- name: Gathering Facts of swapfile "{{ swap_file }}"
+  tags:
+    - deploy
+    - swap
+  stat:
+    path: "{{ swap_file }}"
+  register: swap_file_check
+  changed_when: false
 
 - name: Format swap file
   tags:
     - deploy
     - swap
   command: mkswap {{ swap_file }}
-  when: ansible_swaptotal_mb is defined and ansible_swaptotal_mb == 0 and swap_file_check.stat.exists and swap_file_size.stat.size > 0
+  when: swap_file_check.stat.exists and swap_file_check.stat.size > 0 and not swap_file in swap_file_list.stdout
 
 - name: Add to fstab
   tags:
@@ -68,14 +85,6 @@
     regexp: "{{ swap_file }}"
     line: "{{ swap_file }} none swap sw 0 0"
 
-#- name: Show file size
-  #debug:
-    #msg: "File size is {{ swap_file_check.stat.size }} bytes"
-#
-#- name: Show file size 2
-  #debug:
-    #msg: "File size is {{ swap_file_size.stat.size }} bytes"
-
 - name: Set permissions on swap file
   tags:
     - deploy
@@ -83,14 +92,14 @@
   file:
     path: "{{ swap_file }}"
     mode: 0600
-  when: swap_file_check.stat.exists and swap_file_size.stat.size > 0
+  when: swap_file_check.stat.exists and swap_file_check.stat.size > 0 and swap_file_check.stat.mode != "0600"
 
 - name: Turn on swap
   tags:
     - deploy
     - swap
   command: swapon -a
-  when: ansible_facts.swaptotal_mb is not defined or ansible_swaptotal_mb == 0 and swap_file_size.stat.size > 0
+  when: swap_file_check.stat.size > 0 and swap_file_check.stat.mode == "0600"  and not swap_file in swap_file_list.stdout
 
 - name: Set swappiness
   tags:
@@ -99,3 +108,12 @@
   sysctl:
     name: vm.swappiness
     value: "{{ swap_swappiness }}"
+
+- name: Show file size
+  debug:
+    msg: "File size is {{ swap_file_check.stat.size / 1000000000 | round(0) | int }} GB"
+
+- name: Show swap size
+  debug:
+    msg: "Total swap size is {{ ansible_swaptotal_mb / 1000 | round(0) | int }} GB"
+
