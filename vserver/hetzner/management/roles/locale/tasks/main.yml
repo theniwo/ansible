@@ -87,16 +87,28 @@
         - deploy
         - locale
         - tty
-      ansible.builtin.command:
-        cmd: dpkg-reconfigure console-setup
+      ansible.builtin.lineinfile:
+        path: /etc/default/keyboard
+        regexp: '^XKBLAYOUT='
+        line: 'XKBLAYOUT=de'
+        state: present
       when: ansible_facts['os_family'] == 'Debian'
 
-    - name: Verify locale settings
+    - name: Apply keyboard layout (Ubuntu)
+      tags:
+        - deploy
+        - locale
+        - tty
       ansible.builtin.shell:
-        cmd: locale
-      register: locale_status
+        cmd: setupcon 2>/dev/null
+      when: ansible_facts['os_family'] == 'Debian'
 
-    - name: Debug locale status
-      ansible.builtin.debug:
-        var: locale_status.stdout
+    #- name: Verify locale settings
+      #ansible.builtin.shell:
+        #cmd: locale
+      #register: locale_status
+#
+    #- name: Debug locale status
+      #ansible.builtin.debug:
+        #var: locale_status.stdout
 
