@@ -18,7 +18,6 @@
   with_items:
     - rclone
     - fuse
-    - fuse-common
     - unzip
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
 
