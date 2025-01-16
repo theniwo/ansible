@@ -58,7 +58,10 @@
     - deploy
     - swap
   command: dd if=/dev/zero of={{ swap_file }} bs=1G count={{ swap_space }}
-  when: swap_file_check.stat.exists and swap_file_check.stat.size > 0 and not swap_file in swap_file_list.stdout
+  when:
+  - swap_file_check.stat.exists
+  - swap_file_check.stat.size > 0
+  - swap_file not in swap_file_list.stdout
 
 - name: Gathering Facts of swapfile "{{ swap_file }}"
   tags:
@@ -109,11 +112,25 @@
     name: vm.swappiness
     value: "{{ swap_swappiness }}"
 
-- name: Show file size
-  debug:
-    msg: "File size is {{ swap_file_check.stat.size / 1000000000 | round(0) | int }} GB"
+- name: Refresh facts after enabling swap
+  ansible.builtin.setup:
+    gather_subset:
+      - min
+      - hardware
 
-- name: Show swap size
+- name: Calculate file size in GB
+  set_fact:
+    file_size_gb: "{{ (swap_file_check.stat.size | float / 1000000000) | round(0) | int }}"
+
+- name: Calculate total swap size in GB
+  set_fact:
+    swap_total_gb: "{{ (ansible_swaptotal_mb | float / 1000) | round(0) | int }}"
+
+- name: Display file size
   debug:
-    msg: "Total swap size is {{ ansible_swaptotal_mb / 1000 | round(0) | int }} GB"
+    msg: "File size is {{ file_size_gb }} GB"
+
+- name: Display total swap size
+  debug:
+    msg: "Total swap size is {{ swap_total_gb }} GB"
 
