@@ -23,7 +23,45 @@
     - "{{ pkgs_rpm }}"
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
 
+
 # SYS
+## Fail2ban
+- name: Start and enable Fail2Ban service
+  tags:
+    - deploy
+    - fail2ban
+  systemd:
+    name: fail2ban
+    state: started
+    enabled: true
+
+- name: Ensure firewalld is installed (optional for Fail2Ban IP banning)
+  tags:
+    - deploy
+    - fail2ban
+  dnf:
+    name: firewalld
+    state: present
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: Start and enable firewalld service
+  tags:
+    - deploy
+    - fail2ban
+  systemd:
+    name: firewalld
+    state: started
+    enabled: true
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
+- name: Restart Fail2Ban to apply new configuration
+  tags:
+    - deploy
+    - fail2ban
+  systemd:
+    name: fail2ban
+    state: restarted
+
 ## sysctl
 
 - name: Disable IPv6
@@ -193,6 +231,6 @@
       export LESS="$LESS -Q"
 
 # Finishing up
-- name: Reboot and wait 1 min
-  ansible.builtin.reboot:
-    reboot_timeout: 60
+#- name: Reboot and wait 1 min
+  #ansible.builtin.reboot:
+    #reboot_timeout: 60
