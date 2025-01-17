@@ -45,6 +45,8 @@
       tags: docker
     - role: scripts
       tags: scripts
+    - role: cron
+      tags: cron
     - role: mail
       tags: mail
     - role: unattended-upgrades
