@@ -2,6 +2,7 @@ pkgs_deb:
   - bash-completion
   - byobu
   - fail2ban
+  - lsb_release
   - moreutils
   - ncdu
   - plocate
@@ -13,6 +14,7 @@ pkgs_rpm:
   - byobu
   - crontabs
   - fail2ban
+  - lsb_release
   - moreutils
   - ncdu
   - plocate
