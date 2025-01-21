@@ -145,6 +145,45 @@
     line: 'export EDITOR="$VISUAL"'
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
 
+- name: Add crontab function to .bash_aliases
+  tags:
+    - deploy
+    - cfg
+  blockinfile:
+    path: /root/.bash_aliases
+    block: |
+      crontab ()
+      {
+          if [[ $* == '-r'*(^i) ]]; then
+              echo "Not allowed! Use 'crontab -ir' or '-ri' instead!";
+          else
+              /usr/bin/crontab $*;
+          fi
+      }
+    marker: "# {mark} Ansible managed crontab function"
+    state: present
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+
+- name: Add crontab function to .bashrc
+  tags:
+    - deploy
+    - cfg
+  blockinfile:
+    path: /root/.bashrc
+    block: |
+      crontab ()
+      {
+          if [[ $* == '-r'*(^i) ]]; then
+              echo "Not allowed! Use 'crontab -ir' or '-ri' instead!";
+          else
+              /usr/bin/crontab $*;
+          fi
+      }
+    marker: "# {mark} Ansible managed crontab function"
+    state: present
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+
 - name: Alias bashrc
   tags:
     - deploy
