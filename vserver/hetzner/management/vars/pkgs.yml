@@ -5,6 +5,7 @@ pkgs_deb:
   - moreutils
   - ncdu
   - plocate
+  - sqlite
   - unzip
   - vim
 pkgs_rpm:
@@ -15,5 +16,6 @@ pkgs_rpm:
   - moreutils
   - ncdu
   - plocate
+  - sqlite
   - unzip
   - vim
