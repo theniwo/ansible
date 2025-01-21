@@ -57,3 +57,33 @@ To deploy all public ssh keys use the following command:
 ```
 ansible-playbook addpubkeys.yml -i inventory
 ```
+
+# TODO
+## refactor code
+ - [ ] apache
+ - [ ] checkservices
+ - [ ] checkupdates
+ - [ ] cron
+ - [ ] deploy
+ - [ ] docker
+ - [ ] locale
+ - [ ] mail
+ - [ ] patchmanagement
+ - [ ] podman
+ - [ ] podman.bak
+ - [ ] scripts
+ - [ ] sshd
+ - [ ] storagebox
+ - [ ] swap
+ - [ ] test
+ - [ ] unattended-upgrades
+ - [ ] user
+ - [ ] user_mgmt
+
+ ## Final Check
+ - [ ] Ubuntu 20.04
+ - [ ] Ubuntu 22.04
+ - [ ] Ubuntu 24.04
+ - [ ] Fedora 39
+ - [ ] Fedora 40
+ - [ ] Fedora 41
