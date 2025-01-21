@@ -1,0 +1,9 @@
+#!/bin/bash
+
+/usr/bin/sqlite3 /var/lib/fail2ban/fail2ban.sqlite3 <<EOF
+SELECT json_extract(data, '$.ip4', '$.user') FROM bans;
+#SELECT json_extract(data, '$.ip4', '$.user', '$.matches') FROM bans;
+
+EOF
+exit 0;
+

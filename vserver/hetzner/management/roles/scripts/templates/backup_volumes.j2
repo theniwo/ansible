@@ -9,7 +9,7 @@
 backup_files="/var/lib/docker/volumes"
 
 # Where to backup to.
-dest="/mnt/storage/DATA/BACKUP/vserver/hetzner/$HOSTNAME"
+dest="{{ backup_path }}/$HOSTNAME"
 
 # Create archive filename.
 day=$(date +%A)

@@ -1,57 +1,32 @@
 ---
-- name: Create Cronjob backup root
-  tags:
-    - deploy
-    - scripts
-    - cron
-  ansible.builtin.cron:
-    name: "backup root"
-    minute: "0"
-    hour: "0"
-    job: 'tar cPzf "/mnt/storage/DATA/BACKUP/vserver/hetzner/$HOSTNAME/root_$(date +%y%m%d%H%M).tar.gz" /root >/dev/null'
+- tags:
+  - deploy
+  - cron
+  block:
+    - name: Cronjob Set MAILTO
+      cronvar:
+        name: MAILTO
+        value: "{{ mailto }}"
+        user: root
 
-- name: Ensure the directory exists
-  tags:
-    - deploy
-    - scripts
-    - cron
-  file:
-    path: /opt/scripts
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: '0755'
+    - name: Create Cronjob backup root
+      ansible.builtin.cron:
+        name: "backup root"
+        minute: "0"
+        hour: "0"
+        job: 'HOSTNAME=$(hostname) && tar cPzf "{{ backup_path }}/root_$(date +\%y\%m\%d\%H\%M).tar.gz" /root >/dev/null'
 
-- name: Copy backup_volumes.sh
-  tags:
-    - deploy
-    - scripts
-    - cron
-  ansible.builtin.copy:
-    src: ../files/backup_volumes.sh
-    dest: /opt/scripts/backup_volumes.sh
-    owner: root
-    group: root
-    mode: '0755'
+    - name: Create Cronjob backup volumes
+      ansible.builtin.cron:
+        name: "backup volumes"
+        minute: "0"
+        hour: "1"
+        job: "{{ scripts_path }}/backup_volumes.sh >/dev/null"
 
-- name: Cronjob Set MAILTO
-  tags:
-    - deploy
-    - scripts
-    - cron
-  cronvar:
-    name: MAILTO
-    value: "$WHOAMI.{{ mailAddress }}"
-    user: root
-
-- name: Create Cronjob backup volumes
-  tags:
-    - deploy
-    - scripts
-    - cron
-  ansible.builtin.cron:
-    name: "backup volumes"
-    minute: "0"
-    hour: "1"
-    job: "/opt/scripts/backup_volumes.sh >/dev/null"
+    - name: Create Cronjob
+      ansible.builtin.cron:
+        name: "spacewatch"
+        minute: "*/30"
+        hour: "8-21"
+        job: "{{ bin_path }}/spacewatch >/dev/null"
 
