@@ -2,7 +2,7 @@ pkgs_deb:
   - bash-completion
   - byobu
   - fail2ban
-  - lsb_release
+  - lsb-release
   - moreutils
   - ncdu
   - plocate
