@@ -5,8 +5,7 @@ pkgs_deb:
   - lsb-release
   - moreutils
   - ncdu
-  - plocate
-  - sqlite
+  - "{{ sqlite_name }}"
   - unzip
   - vim
 pkgs_rpm:
