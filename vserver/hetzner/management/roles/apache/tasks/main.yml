@@ -1,30 +1,17 @@
 ---
-- name: Install apache
-  apt:
-    name: "{{ item }}"
-    state: latest
-  with_items:
-   - apache2
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+- name: Install {{ package_name }} Webserver ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  package:
+    name: "{{ package_name }}"
+    state: present
+  vars:
+    package_name: "{{ 'httpd' if ansible_facts['os_family'] == 'RedHat' else 'apache2' }}"
+  when: ansible_facts['os_family'] in ['RedHat', 'Debian']
 
-- name: Install httpd
-  yum:
-    name: "{{ item }}"
-    state: latest
-  with_items:
-   - httpd
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
-
-- name: restart apache
+- name: Restart {{ package_name }} ({{ ansible_distribution }} {{ ansible_distribution_version }})
   service:
-    name: apache2
+    name: "{{ package_name }}"
     state: started
     enabled: yes
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-
-- name: restart httpd
-  service:
-    name: httpd
-    state: started
-    enabled: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+  vars:
+    package_name: "{{ 'httpd' if ansible_facts['os_family'] == 'RedHat' else 'apache2' }}"
+  when: ansible_facts['os_family'] in ['RedHat', 'Debian']
