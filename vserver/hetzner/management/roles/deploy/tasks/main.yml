@@ -12,6 +12,7 @@
     - "{{ pkgs_deb }}"
   vars:
     sqlite_name: "{{ 'sqlite3' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] >= '24' else 'sqlite' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] < '24' else 'sqlite' }}"
+    locate_name: "{{ 'plocate' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] >= '22' else 'locate' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] < '22' else 'locate' }}"
   when:
     - ansible_facts['os_family'] in ['Debian']
     #- ansible_facts['distribution'] == 'Ubuntu'
