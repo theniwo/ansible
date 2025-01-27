@@ -8,7 +8,6 @@
   with_items:
     - rclone
     - fuse3
-    - unzip
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
 - name: Install requirements
@@ -18,7 +17,6 @@
   with_items:
     - rclone
     - fuse
-    - unzip
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
 
 - name: Install latest rclone version
@@ -33,21 +31,21 @@
     path: /mnt/storage
     state: directory
     mode: '0755'
-    #recurse: true
+    recurse: true
 
 - name: Create /mnt/DATA directory
   ansible.builtin.file:
     path: /mnt/DATA
     state: directory
     mode: '0755'
-    #recurse: true
+    recurse: true
 
 - name: Create /mnt/MEDIA directory
   ansible.builtin.file:
     path: /mnt/MEDIA
     state: directory
     mode: '0755'
-    #recurse: true
+    recurse: true
 
 - name: Create cache directory
   ansible.builtin.file:
@@ -75,12 +73,12 @@
 
 - name: Create a symbolic link for fuser
   ansible.builtin.file:
-    src: /usr/bin/fusermount
-    dest: /usr/bin/fusermount3
+    src: /usr/bin/fusermount3
+    dest: /usr/bin/fusermount
     owner: root
     group: root
     state: link
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora' and ansible_distribution_major_version <= '40'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
   ignore_errors: True
 
 
@@ -112,14 +110,13 @@
     #state: started
     #name: mnt-storage.automount
     #daemon_reload: true
-    #
 
 - name: Mount storage
   ansible.posix.mount:
     src: 'storagebox:'
     path: /mnt/storage
     #opts: rw,noauto,nofail,_netdev,x-systemd.automount,args2env,vfs_cache_mode=writes,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
-    opts: rw,nofail,_netdev,args2env,vfs_cache_mode=minimal,vfs_cache_max_age=5m,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
+    opts: rw,nofail,_netdev,args2env,vfs_cache_mode=writes,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
     boot: true
     state: mounted
     fstype: rclone
@@ -131,7 +128,7 @@
     src: 'data:'
     path: /mnt/DATA
     #opts: rw,noauto,nofail,_netdev,x-systemd.automount,args2env,vfs_cache_mode=writes,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
-    opts: rw,nofail,_netdev,args2env,vfs_cache_mode=minimal,vfs_cache_max_size=15G,vfs_cache_max_age=5m,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
+    opts: rw,nofail,_netdev,args2env,vfs_cache_mode=writes,vfs_cache_max_size=15G,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
     boot: true
     state: mounted
     fstype: rclone
@@ -143,10 +140,8 @@
     src: 'media:'
     path: /mnt/MEDIA
     #opts: rw,noauto,nofail,_netdev,x-systemd.automount,args2env,vfs_cache_mode=writes,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
-    opts: rw,nofail,_netdev,args2env,vfs_cache_mode=minimal,vfs_cache_max_size=15G,vfs_cache_max_age=5m,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
+    opts: rw,nofail,_netdev,args2env,vfs_cache_mode=writes,vfs_cache_max_size=15G,config=/etc/rclone.conf,cache_dir=/var/cache/rclone
     boot: true
     state: mounted
     fstype: rclone
 
-- name: Reload systemd manager configuration
-  command: systemctl daemon-reload

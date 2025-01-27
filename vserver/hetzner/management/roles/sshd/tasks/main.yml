@@ -1,47 +1,50 @@
-- tags:
-  - deploy
-  - sshd
-  block:
-    - name: Ensure config directory exists
-      ansible.builtin.file:
-        path: /etc/ssh/sshd_config.d
-        state: directory
-        owner: root
-        group: root
-        mode: '0755'
+- name: Ensure config directory exists
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
 
-    - name: Create SSH configuration file for root key-based authentication
-      ansible.builtin.copy:
-        dest: /etc/ssh/sshd_config.d/root_key_only.conf
-        content: |
-          # Allow root login only with SSH keys
-          PermitRootLogin prohibit-password
+- name: Create SSH configuration file for root key-based authentication
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/root_key_only.conf
+    content: |
+      # Allow root login only with SSH keys
+      PermitRootLogin prohibit-password
 
-          # Disable password authentication for all users
-          PasswordAuthentication no
+      # Disable password authentication for all users
+      PasswordAuthentication no
 
-          # Ensure public key authentication is enabled
-          PubkeyAuthentication yes
-        owner: root
-        group: root
-        mode: '0644'
+      # Ensure public key authentication is enabled
+      PubkeyAuthentication yes
+    owner: root
+    group: root
+    mode: '0644'
 
-    - name: Include config.d directory in main configuration
-      ansible.builtin.lineinfile:
-        path: /etc/ssh/sshd_config
-        regexp: '^#?Include /etc/ssh/sshd_config.d/\*\.conf'
-        line: 'Include /etc/ssh/sshd_config.d/*.conf'
-        state: present
+- name: Include config.d directory in main configuration
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Include /etc/ssh/sshd_config.d/\*\.conf'
+    line: 'Include /etc/ssh/sshd_config.d/*.conf'
+    state: present
 
-    - name: Restart SSH service to apply changes (RHEL)
-      ansible.builtin.service:
-        name: sshd
-        state: restarted
-      when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+#- name: Restart SSH service to apply changes (RHEL)
+  #ansible.builtin.service:
+    #name: sshd
+    #state: restarted
+  #when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
 
-    - name: Restart SSH service to apply changes (Ubuntu)
-      ansible.builtin.service:
-        name: ssh
-        state: restarted
-      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+#- name: Restart SSH service to apply changes (Ubuntu)
+  #ansible.builtin.service:
+    #name: ssh
+    #state: restarted
+  #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
+- name: Apply changes ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.service:
+    name: "{{ sshd_name }}"
+    state: restarted
+  vars:
+    sshd_name: "{{ 'sshd' if ansible_facts['os_family'] == 'RedHat' else 'ssh' if ansible_facts['os_family'] == 'Debian' else 'sshd' }}"
+  when: ansible_facts['os_family'] in ['RedHat', 'Debian']

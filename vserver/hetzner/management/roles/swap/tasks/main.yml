@@ -1,27 +1,21 @@
 - name: Gathering Facts
   ansible.builtin.setup:
+    gather_subset:
+      - min
+      - hardware
 
 - name: Gathering Facts of swapfile "{{ swap_file }}"
-  tags:
-    - deploy
-    - swap
   stat:
     path: "{{ swap_file }}"
   register: swap_file_check
   changed_when: false
 
 - name: Get the list of swap files
-  tags:
-    - deploy
-    - swap
   command: swapon -s
   register: swap_file_list
   changed_when: false
 
 - name: Create swap file "{{ swap_file }}"
-  tags:
-    - deploy
-    - swap
   file:
     path: "{{ swap_file }}"
     state: touch
@@ -29,34 +23,22 @@
   when: not swap_file_check.stat.exists
 
 - name: Gathering Facts of swapfile "{{ swap_file }}"
-  tags:
-    - deploy
-    - swap
   stat:
     path: "{{ swap_file }}"
   register: swap_file_check
   changed_when: false
 
-- name: Allocate swap file
-  tags:
-    - deploy
-    - swap
+- name: Allocate swap file "{{ swap_file }}"
   command: fallocate -l {{ swap_space }}G {{ swap_file }}
   when: swap_file_check.stat.exists and swap_file_check.stat.size == 0
 
 - name: Gathering Facts of swapfile "{{ swap_file }}"
-  tags:
-    - deploy
-    - swap
   stat:
     path: "{{ swap_file }}"
   register: swap_file_check
   changed_when: false
 
-- name: Zeroing swap space
-  tags:
-    - deploy
-    - swap
+- name: Zeroing swap space "{{ swap_file }}"
   command: dd if=/dev/zero of={{ swap_file }} bs=1G count={{ swap_space }}
   when:
   - swap_file_check.stat.exists
@@ -64,55 +46,37 @@
   - swap_file not in swap_file_list.stdout
 
 - name: Gathering Facts of swapfile "{{ swap_file }}"
-  tags:
-    - deploy
-    - swap
   stat:
     path: "{{ swap_file }}"
   register: swap_file_check
   changed_when: false
 
-- name: Format swap file
-  tags:
-    - deploy
-    - swap
+- name: Format swap file "{{ swap_file }}"
   command: mkswap {{ swap_file }}
   when: swap_file_check.stat.exists and swap_file_check.stat.size > 0 and not swap_file in swap_file_list.stdout
 
-- name: Add to fstab
-  tags:
-    - deploy
-    - swap
+- name: Add "{{ swap_file }}" to fstab
   lineinfile:
     dest: /etc/fstab
     regexp: "{{ swap_file }}"
     line: "{{ swap_file }} none swap sw 0 0"
 
-- name: Set permissions on swap file
-  tags:
-    - deploy
-    - swap
+- name: Set permissions on swap file "{{ swap_file }}"
   file:
     path: "{{ swap_file }}"
     mode: 0600
   when: swap_file_check.stat.exists and swap_file_check.stat.size > 0 and swap_file_check.stat.mode != "0600"
 
 - name: Turn on swap
-  tags:
-    - deploy
-    - swap
   command: swapon -a
   when: swap_file_check.stat.size > 0 and swap_file_check.stat.mode == "0600"  and not swap_file in swap_file_list.stdout
 
 - name: Set swappiness
-  tags:
-    - deploy
-    - swap
   sysctl:
     name: vm.swappiness
     value: "{{ swap_swappiness }}"
 
-- name: Refresh facts after enabling swap
+- name: Refresh facts
   ansible.builtin.setup:
     gather_subset:
       - min
@@ -126,7 +90,7 @@
   set_fact:
     swap_total_gb: "{{ (ansible_swaptotal_mb | float / 1000) | round(0) | int }}"
 
-- name: Display file size
+- name: Display file size of "{{ swap_file }}"
   debug:
     msg: "File size is {{ file_size_gb }} GB"
 

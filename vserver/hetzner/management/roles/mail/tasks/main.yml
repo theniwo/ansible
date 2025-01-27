@@ -1,32 +1,22 @@
 ---
-# PKGS
-- name: Install requirements
-  tags:
-    - deploy
-    - mail
-  apt:
-    name: "{{ item }}"
+- name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.package:
+    name:
+      - libsasl2-modules
+      - mailutils
+      - postfix
     state: latest
     update_cache: yes
-  with_items:
-    - libsasl2-modules
-    - postfix
-    - mailutils
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  when: ansible_facts['os_family'] in ['Debian']
 
-- name: Install requirements
-  tags:
-    - deploy
-    - mail
-  yum:
-    name: "{{ item }}"
-    state: latest
-  with_items:
-    - cyrus-sasl-plain
-    - postfix
-    - s-nail
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
-
+- name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.package:
+    name:
+      - cyrus-sasl-plain
+      - postfix
+      - s-nail
+    state: present
+  when: ansible_facts['os_family'] in ['RedHat']
 
 - name: Create directory if it does not exist
   ansible.builtin.file:

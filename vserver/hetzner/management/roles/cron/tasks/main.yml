@@ -1,32 +1,39 @@
 ---
-- tags:
-  - deploy
-  - cron
-  block:
-    - name: Cronjob Set MAILTO
-      cronvar:
-        name: MAILTO
-        value: "{{ mailto }}"
-        user: root
+- name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - packages
+  ansible.builtin.package:
+    name: "{{ cron_name }}"
+    state: latest
+    update_cache: yes
+  vars:
+    cron_name: "{{ 'cron' if ansible_facts['os_family'] == 'Debian' else 'crontabs' if ansible_facts['os_family'] == 'RedHat' }}"
+  when: ansible_facts['os_family'] in ['Debian', 'RedHat']
 
-    - name: Create Cronjob backup root
-      ansible.builtin.cron:
-        name: "backup root"
-        minute: "0"
-        hour: "0"
-        job: 'HOSTNAME=$(hostname) && tar cPzf "{{ backup_path }}/root_$(date +\%y\%m\%d\%H\%M).tar.gz" /root >/dev/null'
+- name: Cronjob Set MAILTO
+  cronvar:
+    name: MAILTO
+    value: "{{ mailto }}"
+    user: root
 
-    - name: Create Cronjob backup volumes
-      ansible.builtin.cron:
-        name: "backup volumes"
-        minute: "0"
-        hour: "1"
-        job: "{{ scripts_path }}/backup_volumes.sh >/dev/null"
+- name: Create Cronjob backup root
+  ansible.builtin.cron:
+    name: "backup root"
+    minute: "0"
+    hour: "0"
+    job: 'HOSTNAME=$(hostname) && tar cPzf "{{ backup_path }}/root_$(date +\%y\%m\%d\%H\%M).tar.gz" /root >/dev/null'
 
-    - name: Create Cronjob
-      ansible.builtin.cron:
-        name: "spacewatch"
-        minute: "*/30"
-        hour: "8-21"
-        job: "{{ bin_path }}/spacewatch >/dev/null"
+- name: Create Cronjob backup volumes
+  ansible.builtin.cron:
+    name: "backup volumes"
+    minute: "0"
+    hour: "1"
+    job: "{{ scripts_path }}/backup_volumes.sh >/dev/null"
+
+- name: Create Cronjob
+  ansible.builtin.cron:
+    name: "spacewatch"
+    minute: "*/30"
+    hour: "8-21"
+    job: "{{ bin_path }}/spacewatch >/dev/null"
 

@@ -1,5 +1,8 @@
 ---
 - name: "Read variables"
+  tags:
+    - deploy
+    - remove
   ansible.builtin.include_vars: '{{ item }}'
   with_first_found:
     - files:
@@ -7,7 +10,18 @@
       paths: "files/pubkeys/"
 
 - name: "Deploy SSH-Keys to remote host"
+  tags:
+    - deploy
   ansible.posix.authorized_key:
     user: root
     key: "{{ keystodeploy|map(attribute='sshkey')|join('\n') }}"
     exclusive: true
+
+- name: "Remove SSH-Keys to remote host"
+  tags:
+    - remove
+  ansible.posix.authorized_key:
+    user: root
+    key: "{{ keystoremove|map(attribute='sshkey')|join('\n') }}"
+    state: absent
+

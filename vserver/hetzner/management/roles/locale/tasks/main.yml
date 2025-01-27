@@ -1,114 +1,130 @@
-- tags:
-  - deploy
-  - locale
-  block:
-    - name: Detect the OS
-      ansible.builtin.setup:
-        gather_subset:
-          - os_family
+---
+- name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - tty
+  ansible.builtin.package:
+    name: locales
+    state: present
+    update_cache: yes
+  when: ansible_facts['os_family'] in ['Debian']
 
-    - name: Install necessary locale packages (Ubuntu)
-      tags:
-        - deploy
-        - locale
-        - tty
-      ansible.builtin.package:
-        name: locales
-        state: present
-      when: ansible_facts['os_family'] == 'Debian'
+- name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - tty
+  ansible.builtin.package:
+    name:
+      - glibc-common
+      - glibc-langpack-de
+      - glibc-langpack-en
+      - glibc-locale-source
+    state: present
+  when: ansible_facts['os_family'] in ['RedHat']
 
-    - name: Install necessary locale packages (Fedora)
-      tags:
-        - deploy
-        - locale
-        - tty
-      ansible.builtin.package:
-        name:
-          - glibc-common
-          - glibc-langpack-de
-          - glibc-langpack-en
-          - glibc-locale-source
-        state: present
-      when: ansible_facts['os_family'] == 'RedHat'
+# The old way
+#- name: Install necessary locale packages ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  #tags:
+    #- tty
+  #apt:
+    #name: "{{ item }}"
+    #state: latest
+    #update_cache: yes
+  #with_items:
+    #- locales
+  #when: ansible_facts['os_family'] in ['Debian']
 
-    - name: Generate German locale (Ubuntu)
-      ansible.builtin.command:
-        cmd: locale-gen de_DE.UTF-8
-      when: ansible_facts['os_family'] == 'Debian'
+#- name: Install necessary locale packages ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  #tags:
+    #- tty
+  #yum:
+    #name: "{{ item }}"
+    #state: latest
+  #loop:
+      #- glibc-common
+      #- glibc-langpack-de
+      #- glibc-langpack-en
+      #- glibc-locale-source
+  #when: ansible_facts['os_family'] in ['RedHat']
 
-    - name: Generate German locale (Fedora)
-      ansible.builtin.command:
-        cmd: localedef -i de_DE -f UTF-8 de_DE.UTF-8
-      when: ansible_facts['os_family'] == 'RedHat'
+- name: Ensure a locale exists
+  community.general.locale_gen:
+    name: de_DE.UTF-8
+    state: present
+  when: ansible_facts['os_family'] in ['Debian']
 
-    - name: Set default locale to German (Ubuntu)
-      ansible.builtin.lineinfile:
-        path: /etc/default/locale
-        regexp: '^LANG='
-        line: 'LANG=de_DE.UTF-8'
-        state: present
-      when: ansible_facts['os_family'] == 'Debian'
+# The manual way
+#- name: Generate German locale ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  #ansible.builtin.command:
+    #cmd: locale-gen de_DE.UTF-8
+  #when: ansible_facts['os_family'] in ['Debian']
 
-    - name: Set default locale to German (Fedora)
-      ansible.builtin.lineinfile:
-        path: /etc/locale.conf
-        regexp: '^LANG='
-        line: 'LANG=de_DE.UTF-8'
-        state: present
-      when: ansible_facts['os_family'] == 'RedHat'
+#- name: Generate German locale ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  #ansible.builtin.command:
+    #cmd: localedef -i de_DE -f UTF-8 de_DE.UTF-8
+  #when: ansible_facts['os_family'] in ['RedHat']
 
-    - name: Set locale environment for user (Fedora)
-      ansible.builtin.lineinfile:
-        path: /etc/environment
-        regexp: '^LANG='
-        line: 'LANG=de_DE.UTF-8'
-        state: present
-      when: ansible_facts['os_family'] == 'RedHat'
+- name: Set default locale to German ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.lineinfile:
+    path: "{{ locale_name }}"
+    regexp: '^LANG=.*'
+    line: 'LANG=de_DE.UTF-8'
+    state: present
+  vars:
+    locale_name: "{{ '/etc/default/locale' if ansible_facts['os_family'] == 'Debian' else '/etc/locale.conf' if ansible_facts['os_family'] == 'RedHat' }}"
+  when: ansible_facts['os_family'] in ['Debian', 'RedHat']
 
-    - name: Set locale environment for user (Ubuntu)
-      ansible.builtin.lineinfile:
-        path: /etc/environment
-        regexp: '^LANG='
-        line: 'LANG=de_DE.UTF-8'
-        state: present
-      when: ansible_facts['os_family'] == 'Debian'
+- name: Set locale environment for user ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.lineinfile:
+    path: /etc/environment
+    regexp: '^LANG=.*'
+    line: 'LANG=de_DE.UTF-8'
+    state: present
 
-    - name: Set keyboard layout to German (Fedora)
-      tags:
-        - deploy
-        - locale
-        - tty
-      ansible.builtin.command:
-        cmd: localectl set-keymap de
-      when: ansible_facts['os_family'] == 'RedHat'
+- name: Set keyboard layout to German ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - tty
+  ansible.builtin.command:
+    cmd: localectl set-keymap de
+  when: ansible_facts['os_family'] in ['RedHat']
 
-    - name: Set keyboard layout to German (Ubuntu)
-      tags:
-        - deploy
-        - locale
-        - tty
-      ansible.builtin.lineinfile:
-        path: /etc/default/keyboard
-        regexp: '^XKBLAYOUT='
-        line: 'XKBLAYOUT=de'
-        state: present
-      when: ansible_facts['os_family'] == 'Debian'
+- name: Set keyboard layout to German ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - tty
+  ansible.builtin.lineinfile:
+    path: /etc/default/keyboard
+    regexp: '^XKBLAYOUT=.*'
+    line: 'XKBLAYOUT=de'
+    state: present
+  when: ansible_facts['os_family'] in ['Debian']
 
-    - name: Apply keyboard layout (Ubuntu)
-      tags:
-        - deploy
-        - locale
-        - tty
-      ansible.builtin.shell:
-        cmd: setupcon 2>/dev/null
-      when: ansible_facts['os_family'] == 'Debian'
+- name: Apply keyboard layout ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - tty
+  ansible.builtin.shell:
+    cmd: setupcon 2>/dev/null
+  when: ansible_facts['os_family'] in ['Debian']
 
-    #- name: Verify locale settings
-      #ansible.builtin.shell:
-        #cmd: locale
-      #register: locale_status
+- name: Apply changes ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.shell: . {{ locale_name }}
+  vars:
+    locale_name: "{{ '/etc/default/locale' if ansible_facts['os_family'] == 'Debian' else '/etc/locale.conf' if ansible_facts['os_family'] == 'RedHat' }}"
+  when: ansible_facts['os_family'] in ['Debian', 'RedHat']
+
+
+#- name: Refresh facts
+  #ansible.builtin.setup:
+    #gather_subset:
+      #- "!all"
+      #- "env"
 #
-    #- name: Debug locale status
-      #ansible.builtin.debug:
-        #var: locale_status.stdout
-
+#- debug:
+    #msg: "Current LANG is {{ ansible_env.LANG }}"
+#
+#- name: Verify locale settings
+  #ansible.builtin.shell:
+    #cmd: locale
+  #register: locale_status
+#
+#- name: Debug locale status
+  #ansible.builtin.debug:
+    #var: locale_status.stdout
+#

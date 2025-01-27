@@ -1,136 +1,154 @@
 ---
-- name: Remove old docker installations
-  apt:
-    name: "{{ item }}"
-    state: absent
-  with_items:
-    - docker.io
-    - docker-doc
-    - docker-compose
-    - docker-compose-v2
-    - podman-docker
-    - containerd
-    - runc
-  ignore_errors: true
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+- when: ansible_facts['os_family'] in ['Debian']
+  block:
+    - name: Remove old docker installations ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - docker.io
+        - docker-doc
+        - docker-compose
+        - docker-compose-v2
+        - podman-docker
+        - containerd
+        - runc
+      ignore_errors: true
 
-- name: Remove old docker installations
-  yum:
-    name: "{{ item }}"
-    state: absent
-  with_items:
-    - docker
-    - docker-client
-    - docker-client-latest
-    - docker-common
-    - docker-latest
-    - docker-latest-logrotate
-    - docker-logrotate
-    - docker-selinux
-    - docker-engine-selinux
-    - docker-engine
-  ignore_errors: true
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+    - name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      apt:
+        name: "{{ item }}"
+        state: latest
+        update_cache: yes
+      with_items:
+        - ca-certificates
+        - curl
 
-- name: Install requirements
-  apt:
-    name: "{{ item }}"
-    state: latest
-    update_cache: yes
-  with_items:
-    - ca-certificates
-    - curl
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Add the Docker repository ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      block:
+        - name: Ensure apt keyring directory exists
+          ansible.builtin.file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
+            recurse: true
+        - name: Add Docker's official GPG key ({{ ansible_distribution }} {{ ansible_distribution_version }})
+          ansible.builtin.get_url:
+            url: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+            dest: /etc/apt/keyrings/docker.asc
+        - name: Add the repository to Apt sources ({{ ansible_distribution }} {{ ansible_distribution_version }})
+          ansible.builtin.apt_repository:
+            repo: deb [arch={{ ansible_architecture | regex_replace('x86_64', 'amd64') }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/{{ ansible_system | lower }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
+            filename: docker
 
-- name: Install requirements
-  yum:
-    name: "{{ item }}"
-    state: latest
-  with_items:
-    - dnf-plugins-core
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+    - name: Install docker-ce ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      apt:
+        name: "{{ item }}"
+        state: latest
+        update_cache: true
+      with_items:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
 
-- name: install docker repository
-  ansible.builtin.command: dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-  when:
-    #- ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
-    - ansible_distribution == 'Fedora'
-    - ansible_distribution_major_version <= '40'
 
-- name: install docker repository
-  ansible.builtin.command: dnf config-manager addrepo https://download.docker.com/linux/fedora/docker-ce.repo
-  when:
-    - ansible_distribution == 'Fedora'
-    - ansible_distribution_major_version > '40'
-  #when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora' and ansible_distribution_major_version > 40
+    # The manual way
+    #- name: Add Docker's official GPG key ({{ ansible_distribution }})
+      #ansible.builtin.shell: install -m 0755 -d /etc/apt/keyrings && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && chmod a+r /etc/apt/keyrings/docker.asc
 
-#- name: Add docker repository
-  #ansible.builtin.yum_repository:
-    #name: docker-ce
-    #description: "Docker CE"
-    #baseurl: https://download.docker.com/linux/$release/docker-ce.repo
-  #when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+    #- name: Debug message
+      #ansible.builtin.debug:
+        #msg: "{{ [ansible_architecture] | map('extract', deb_architecture) | first }}"
+      #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
-- name: Add Docker's official GPG key
-  ansible.builtin.shell: install -m 0755 -d /etc/apt/keyrings && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && chmod a+r /etc/apt/keyrings/docker.asc
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    #- name: Add the repository to Apt sources
+      #ansible.builtin.shell: |
+        #echo  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
-#- name: Debug message
-  #ansible.builtin.debug:
-    #msg: "{{ [ansible_architecture] | map('extract', deb_architecture) | first }}"
-  #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    #- name: Copy apt sources file
+      #ansible.builtin.template:
+        #src: docker.list.j2
+        #dest: /etc/apt/sources.list.d/docker.list
+        #owner: root
+        #group: root
+        #mode: '0644'
+      #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
-#- name: Add the repository to Apt sources
-  #ansible.builtin.apt_repository:
-    #repo: deb [arch={{ [ansible_architecture] | map('extract', deb_architecture) | first }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/{{ ansible_system | lower }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
-  #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+- when: ansible_facts['os_family'] in ['RedHat']
+  block:
+    - name: Remove old docker installations ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - docker
+        - docker-client
+        - docker-client-latest
+        - docker-common
+        - docker-latest
+        - docker-latest-logrotate
+        - docker-logrotate
+        - docker-selinux
+        - docker-engine-selinux
+        - docker-engine
+      ignore_errors: true
 
-- name: Add the repository to Apt sources
-  ansible.builtin.shell: |
-    echo  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    - name: Install docker repository ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      yum_repository:
+        name: docker-ce
+        description: Docker CE Stable - $basearch
+        baseurl: https://download.docker.com/linux/{{ ansible_distribution | lower }}/$releasever/$basearch/stable
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
 
-#- name: Copy apt sources file
-  #ansible.builtin.template:
-    #src: docker.list.j2
-    #dest: /etc/apt/sources.list.d/docker.list
-    #owner: root
-    #group: root
-    #mode: '0644'
-  #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    # The manual way
+    #- name: Check if dnf5 command exists
+      #command: which dnf5
+      #register: dnf5_check
+      #ignore_errors: true
+    #- name: Install docker repository ({{ ansible_distribution }})
+      #ansible.builtin.command: dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+      #when: dnf5_check.rc != 0
+      #when:
+        #- ansible_distribution == 'Fedora'
+        #- ansible_distribution_major_version <= '40'
 
-- name: Install docker-ce
-  apt:
-    name: "{{ item }}"
-    state: latest
-    update_cache: true
-  with_items:
-    - docker-ce
-    - docker-ce-cli
-    - containerd.io
-    - docker-buildx-plugin
-    - docker-compose-plugin
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    #- name: Install docker repository ({{ ansible_distribution }})
+      #ansible.builtin.command: dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
+      #when: dnf5_check.rc == 0
+      #when:
+        #- ansible_distribution == 'Fedora'
+        #- ansible_distribution_major_version > '40'
 
-- name: Install docker-ce
-  yum:
-    name: "{{ item }}"
-    state: latest
-  with_items:
-    - docker-ce
-    - docker-ce-cli
-    - containerd.io
-    - docker-buildx-plugin
-    - docker-compose-plugin
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+    - name: Install docker-ce ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      yum:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
 
-- name: (re)start docker
+    - name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      yum:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - dnf-plugins-core
+
+- name: (Re)start docker
   service:
     name: docker
     state: started
     enabled: yes
 
-  # use on stupid vservers like 1blue
+# use on stupid vservers like 1blue
 #- name: Copy deamon.json
   #ansible.builtin.template:
     #src: daemon.json.j2
@@ -153,6 +171,8 @@
 #    fstype: ext4
 
 - name: Create /var/lib/docker-plugins/rclone/config
+  tags:
+    - rclone
   ansible.builtin.file:
     path: /var/lib/docker-plugins/rclone/config
     state: directory
@@ -160,28 +180,46 @@
     recurse: true
 
 - name: Create /var/lib/docker-plugins/rclone/cache
+  tags:
+    - rclone
   ansible.builtin.file:
     path: /var/lib/docker-plugins/rclone/cache
     state: directory
     mode: '0755'
     recurse: true
 
-- name: Install latest rclone docker pluging
-  ansible.builtin.shell: |
-    docker plugin install rclone/docker-volume-rclone:amd64 args="-v" --alias rclone --grant-all-permissions
-  ignore_errors: True
+- name: Install latest rclone docker plugin
+  tags:
+    - rclone
+  community.docker.docker_plugin:
+    plugin_name: rclone/docker-volume-rclone
+    state: enable
+  ignore_errors: true
+
+# The manual way
+#- name: Install latest rclone docker plugin
+  #tags:
+    #- rclone
+  #ansible.builtin.shell: |
+    #docker plugin install rclone/docker-volume-rclone:{{ ansible_architecture | regex_replace('x86_64', 'amd64') }} args="-v" --alias rclone --grant-all-permissions
+  #ignore_errors: True
 
 - name: Create a symbolic link for docker-plugin rclone
+  tags:
+    - rclone
   ansible.builtin.file:
     src: /etc/rclone.conf
     dest: /var/lib/docker-plugins/rclone/config/rclone.conf
     owner: root
     group: root
     state: hard
+  ignore_errors: true
 
 - name: Create directories for docker files
+  tags:
+    - scripts
   ansible.builtin.file:
-    path: /root/docker/docker
+    path: $HOME/docker/docker
     state: directory
     owner: root
     group: root
@@ -189,46 +227,58 @@
     recurse: yes
 
 - name: Create directories for docker-compose files
+  tags:
+    - scripts
   ansible.builtin.file:
-    path: /root/docker/docker-compose
+    path: $HOME/docker/docker-compose
     state: directory
     owner: root
     group: root
     mode: 0775
     recurse: yes
 
-- name: copy healthcheck_docker
+- name: Copy healthcheck_docker
+  tags:
+    - scripts
   ansible.builtin.copy:
     src: ../files/healthcheck_docker
-    dest: /usr/local/bin/healthcheck_docker
+    dest: "{{ bin_path }}/healthcheck_docker"
     owner: root
     group: root
     mode: '0755'
 
 - name: Create Cronjob
+  tags:
+    - cron
   ansible.builtin.cron:
     name: "healthcheck_docker"
     minute: "*/30"
     hour: "8-21"
-    job: "/usr/local/bin/healthcheck_docker >/dev/null"
+    job: "{{ bin_path }}/healthcheck_docker >/dev/null"
 
-- name: copy cont command
+- name: Copy cont command
+  tags:
+    - scripts
   ansible.builtin.copy:
     src: ../files/cont
-    dest: /usr/local/bin/cont
+    dest: "{{ bin_path }}/cont"
     owner: root
     group: root
     mode: '0755'
 
-- name: copy comp command
+- name: Copy comp command
+  tags:
+    - scripts
   ansible.builtin.copy:
     src: ../files/comp
-    dest: /usr/local/bin/comp
+    dest: "{{ bin_path }}/comp"
     owner: root
     group: root
     mode: '0755'
 
-- name: copy dockerrc
+- name: Copy dockerrc
+  tags:
+    - scripts
   ansible.builtin.copy:
     src: ../files/dockerrc
     dest: $HOME/.dockerrc
@@ -237,6 +287,8 @@
     mode: '0755'
 
 - name: Insert source command to .bashrc
+  tags:
+    - scripts
   ansible.builtin.blockinfile:
     path: $HOME/.bashrc
     block: |
