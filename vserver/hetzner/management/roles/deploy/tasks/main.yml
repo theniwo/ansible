@@ -1,73 +1,77 @@
 ---
 # PKGS
-- name: Install requirements
+- name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
-    - deploy
     - packages
+    - pkgs
   apt:
     name: "{{ item }}"
     state: latest
     update_cache: yes
   with_items:
     - "{{ pkgs_deb }}"
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  vars:
+    sqlite_name: "{{ 'sqlite3' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] >= '24' else 'sqlite' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] < '24' else 'sqlite' }}"
+  when:
+    - ansible_facts['os_family'] in ['Debian']
+    #- ansible_facts['distribution'] == 'Ubuntu'
 
-- name: Install requirements
+
+- name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
-    - deploy
     - packages
+    - pkgs
   yum:
     name: "{{ item }}"
     state: latest
   with_items:
     - "{{ pkgs_rpm }}"
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+  when: ansible_facts['os_family'] in ['RedHat']
 
 
 # SYS
-## Fail2ban
+# Fail2ban
 - name: Start and enable Fail2Ban service
   tags:
-    - deploy
     - fail2ban
+    - sys
   systemd:
     name: fail2ban
     state: started
     enabled: true
 
-- name: Ensure firewalld is installed (optional for Fail2Ban IP banning)
+- name: Ensure firewalld is installed (optional for Fail2Ban IP banning) ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
-    - deploy
     - fail2ban
+    - sys
   dnf:
     name: firewalld
     state: present
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+  when: ansible_facts['os_family'] in ['RedHat']
 
-- name: Start and enable firewalld service
+- name: Start and enable firewalld service ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
-    - deploy
     - fail2ban
+    - sys
   systemd:
     name: firewalld
     state: started
     enabled: true
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+  when: ansible_facts['os_family'] in ['RedHat']
 
 - name: Restart Fail2Ban to apply new configuration
   tags:
-    - deploy
     - fail2ban
+    - sys
   systemd:
     name: fail2ban
     state: restarted
 
-## sysctl
-
+# Sysctl
 - name: Disable IPv6
   tags:
-    - deploy
     - ipv6
+    - sysctl
   ansible.posix.sysctl:
     name: net.ipv6.conf.all.disable_ipv6
     value: '1'
@@ -76,8 +80,8 @@
 
 - name: Disable IPv6
   tags:
-    - deploy
     - ipv6
+    - sysctl
   ansible.posix.sysctl:
     name: net.ipv6.conf.default.disable_ipv6
     value: '1'
@@ -85,69 +89,29 @@
     reload: yes
 
 # CFG
-
-- name: Creating /root/.bash_aliases
+# Aliases
+- name: Creating /root/.bash_aliases ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
-    - deploy
+    - aliases
     - cfg
   file:
     path: "/root/.bash_aliases"
     state: touch
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  when: ansible_facts['os_family'] in ['Debian']
 
 - name: bash_aliases
   tags:
-    - deploy
+    - aliases
     - cfg
   copy:
     dest: /root/.bash_aliases
     content: |
       alias bashrc='source ~/.bashrc'
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  when: ansible_facts['os_family'] in ['Debian']
 
-- name: VISUAL vim
+- name: Add crontab function to .bash_aliases ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
-    - deploy
-    - cfg
-  ansible.builtin.lineinfile:
-    path: /root/.bash_aliases
-    regexp: '^export VISUAL=vim'
-    line: 'export VISUAL=vim'
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-
-- name: VISUAL vim
-  tags:
-    - deploy
-    - cfg
-  ansible.builtin.lineinfile:
-    path: /root/.bashrc
-    regexp: '^export VISUAL=vim'
-    line: 'export VISUAL=vim'
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
-
-- name: EDITOR vim
-  tags:
-    - deploy
-    - cfg
-  ansible.builtin.lineinfile:
-    path: /root/.bash_aliases
-    regexp: '^export EDITOR="$VISUAL"'
-    line: 'export EDITOR="$VISUAL"'
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-
-- name: EDITOR vim
-  tags:
-    - deploy
-    - cfg
-  ansible.builtin.lineinfile:
-    path: /root/.bashrc
-    regexp: '^export EDITOR="$VISUAL"'
-    line: 'export EDITOR="$VISUAL"'
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
-
-- name: Add crontab function to .bash_aliases
-  tags:
-    - deploy
+    - aliases
     - cfg
   blockinfile:
     path: /root/.bash_aliases
@@ -162,12 +126,12 @@
       }
     marker: "# {mark} Ansible managed crontab function"
     state: present
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  when: ansible_facts['os_family'] in ['Debian']
 
 
-- name: Add crontab function to .bashrc
+- name: Add crontab function to .bashrc ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
-    - deploy
+    - aliases
     - cfg
   blockinfile:
     path: /root/.bashrc
@@ -182,33 +146,78 @@
       }
     marker: "# {mark} Ansible managed crontab function"
     state: present
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+  when: ansible_facts['os_family'] in ['RedHat']
 
-- name: Alias bashrc
+- name: Alias bashrc ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
-    - deploy
+    - aliases
     - cfg
   ansible.builtin.lineinfile:
     path: /root/.bashrc
     regexp: '^alias bashrc'
     line: "alias bashrc='source ~/.bashrc'"
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+  when: ansible_facts['os_family'] in ['RedHat']
 
-- name: Alias df
+- name: Alias df ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
-    - deploy
+    - aliases
     - cfg
   ansible.builtin.lineinfile:
     path: /root/.bashrc
     regexp: '^alias df'
     line: "alias df='df --exclude-type=tmpfs --exclude-type=loop --exclude-type=squashfs --exclude-type=overlay'"
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' or ansible_distribution == 'Fedora'
+  when: ansible_facts['os_family'] in ['RedHat']
 
+# Env
+- name: VISUAL vim ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - env
+    - vim
+  ansible.builtin.lineinfile:
+    path: /root/.bash_aliases
+    regexp: '^export VISUAL=vim'
+    line: 'export VISUAL=vim'
+  when: ansible_facts['os_family'] in ['Debian']
 
+- name: VISUAL vim ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - env
+    - vim
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^export VISUAL=vim'
+    line: 'export VISUAL=vim'
+  when: ansible_facts['os_family'] in ['RedHat']
+
+- name: EDITOR vim ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - env
+    - vim
+  ansible.builtin.lineinfile:
+    path: /root/.bash_aliases
+    regexp: '^export EDITOR="$VISUAL"'
+    line: 'export EDITOR="$VISUAL"'
+  when: ansible_facts['os_family'] in ['Debian']
+
+- name: EDITOR vim ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - env
+    - vim
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^export EDITOR="$VISUAL"'
+    line: 'export EDITOR="$VISUAL"'
+  when: ansible_facts['os_family'] in ['RedHat']
+
+# Vim
 - name: Create /etc/vim directory if it does not exist
   tags:
-    - deploy
     - cfg
+    - vim
   ansible.builtin.file:
     path: /etc/vim
     state: directory
@@ -216,25 +225,27 @@
 
 - name: Creating vimrc.local
   tags:
-    - deploy
     - cfg
+    - vim
   file:
     path: "/etc/vim/vimrc.local"
     state: touch
 
-- name: Update alternative editor to vim
+- name: Update alternative editor to vim ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - vim
   community.general.alternatives:
     name: editor
     path: /usr/bin/vim
-  tags:
-    - deploy
-    - cfg
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  when: ansible_facts['os_family'] in ['Debian']
 
+# Nobell
 - name: Nobell for vim
   tags:
-    - deploy
     - cfg
+    - nobell
+    - vim
   copy:
     dest: /etc/vim/vimrc.local
     content: |
@@ -245,8 +256,8 @@
 
 - name: Nobell for bash
   tags:
-    - deploy
     - cfg
+    - nobell
   ansible.builtin.lineinfile:
     path: /etc/inputrc
     regexp: '^#set bell-style none'
@@ -254,16 +265,16 @@
 
 - name: Creating less.sh
   tags:
-    - deploy
     - cfg
+    - nobell
   file:
     path: "/etc/profile.d/less.sh"
     state: touch
 
 - name: Nobell for less
   tags:
-    - deploy
     - cfg
+    - nobell
   copy:
     dest: /etc/profile.d/less.sh
     content: |
