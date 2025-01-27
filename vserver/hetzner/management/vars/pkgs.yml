@@ -2,6 +2,7 @@ pkgs_deb:
   - bash-completion
   - byobu
   - fail2ban
+  - "{{ locate_name }}"
   - lsb-release
   - moreutils
   - ncdu
