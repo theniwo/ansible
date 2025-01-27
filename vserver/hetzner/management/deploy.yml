@@ -30,14 +30,16 @@
 
     - name: "Set MAILTO"
       tags:
-        - deploy
         - cron
+        - deploy
       ansible.builtin.include_vars:
         file: cron.yml
 
     - name: "Set backup path"
       tags:
+        - cron
         - deploy
+        - docker
         - scripts
       ansible.builtin.include_vars:
         file: scripts.yml
@@ -45,6 +47,8 @@
   roles:
     - role: deploy
       tags: deploy
+    - role: cron
+      tags: cron
     - role: swap
       tags: swap
     - role: locale
@@ -54,21 +58,16 @@
     - role: user
       tags: user
     - role: storagebox
-      tags: storagebox
+      tags: storagebox,rclone
     - role: docker
-      tags: docker
+      tags: docker,rclone
     - role: scripts
       tags: scripts
-    - role: cron
-      tags: cron
-    - role: mail
-      tags: mail
     - role: unattended-upgrades
       tags: unattended-upgrades
-    - role: patchmanagement
+    - role: mail
+      tags: mail
+    - role: patch
+      tags: patch
     - role: checkservices
       tags: checkservices
-    #- role: podman
-      #tags: podman
-    #- role: apache
-      #tags: apache
