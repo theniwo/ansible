@@ -1,0 +1,10 @@
+---
+- hosts: deploy
+  become: true
+  become_user: root
+  environment:
+    LC_ALL: C
+    LANG: C
+  roles:
+    - role: podman
+      tags: podman
