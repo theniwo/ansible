@@ -11,6 +11,7 @@
       tags:
         - deploy
         - packages
+        - pkgs
       ansible.builtin.include_vars:
         file: pkgs.yml
 
