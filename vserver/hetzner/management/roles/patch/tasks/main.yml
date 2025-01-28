@@ -67,7 +67,7 @@
           register: reboot_needed
           changed_when: false
 
-        - name: Updated
+        - name: List updated packages require a reboot
           debug:
             msg: "{{ reboot_needed.stdout_lines }}"
 
