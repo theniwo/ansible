@@ -13,6 +13,7 @@ pkgs_rpm:
   - bash-completion
   - byobu
   - crontabs
+  - dnf-utils
   - fail2ban
   - lsb_release
   - moreutils
