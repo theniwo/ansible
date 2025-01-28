@@ -241,6 +241,16 @@
     path: /usr/bin/vim
   when: ansible_facts['os_family'] in ['Debian']
 
+- name: Update alternative editor to vim ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - vim
+  ansible.builtin.file:
+    src: /usr/bin/vim
+    dest: /usr/bin/editor
+    state: link
+  when: ansible_facts['os_family'] in ['RedHat']
+
 # Nobell
 - name: Nobell for vim
   tags:

@@ -10,6 +10,8 @@
         - docker-doc
         - docker-compose
         - docker-compose-v2
+        - podman
+        - podman-compose
         - podman-docker
         - containerd
         - runc
@@ -94,6 +96,9 @@
         - docker-selinux
         - docker-engine-selinux
         - docker-engine
+        - podman
+        - podman-compose
+        - podman-docker
       ignore_errors: true
 
     - name: Install docker repository ({{ ansible_distribution }} {{ ansible_distribution_version }})
@@ -142,20 +147,57 @@
       with_items:
         - dnf-plugins-core
 
+- name: Gather system facts including bios
+  setup:
+    gather_subset:
+      - hardware
+
+# use on stupid vservers like 1blue
+- name: Copy deamon.json
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+  when: ansible_facts['ansible_system_vendor'] is defined and ansible_facts['ansible_system_vendor'] in ['1Blu']
+
 - name: (Re)start docker
   service:
     name: docker
     state: started
     enabled: yes
 
-# use on stupid vservers like 1blue
-#- name: Copy deamon.json
-  #ansible.builtin.template:
-    #src: daemon.json.j2
-    #dest: /etc/docker/daemon.json
-    #owner: root
-    #group: root
-    #mode: '0644'
+- name: Run hello-world container
+  community.docker.docker_container:
+    name: hello-world-container
+    image: hello-world
+    state: started
+    #auto_remove: true
+  register: hello_world_result
+
+- name: Print hello-world container logs
+  command: docker logs hello-world-container
+  register: hello_world_logs
+  ignore_errors: true
+
+- name: Display container logs
+  debug:
+    msg: "{{ hello_world_logs.stdout_lines }}"
+
+- name: Remove hello-world container
+  community.docker.docker_container:
+    name: hello-world-container
+    state: absent
+    force_kill: true
+
+- name: Remove hello-world image
+  community.docker.docker_image:
+    name: hello-world
+    state: absent
+    force_absent: true
+
+
 
 # Mounts if present
 #- name: Mount docker-volumes

@@ -5,6 +5,7 @@
     state: absent
   loop:
     - docker.io
+    - docker-ce-cli
     - docker-doc
     - docker-compose
     - docker-compose-v2
@@ -20,6 +21,7 @@
     state: absent
   loop:
     - docker
+    - docker-ce-cli
     - docker-client
     - docker-client-latest
     - docker-common
@@ -56,6 +58,11 @@
     state: present
   when: ansible_facts['os_family'] in ['RedHat']
 
+- name: Supress emulation notification
+  ansible.builtin.file:
+    path: /etc/containers/nodocker
+    state: touch
+
   # scan for all uids >=1000
 - name: Enable linger for user ID 1000
   ansible.builtin.command:
@@ -63,3 +70,33 @@
   become: true
   changed_when: false
   ignore_errors: true
+
+- name: Run hello-world container
+  containers.podman.podman_container:
+    name: hello-world-container
+    image: hello-world
+    state: started
+    remove: false
+  register: hello_world_result
+
+- name: Print hello-world container logs
+  command: podman logs hello-world-container
+  register: hello_world_logs
+  ignore_errors: true
+
+- name: Display container logs
+  debug:
+    msg: "{{ hello_world_logs.stdout_lines }}"
+
+- name: Remove hello-world container
+  containers.podman.podman_container:
+    name: hello-world-container
+    state: absent
+    force_delete: true
+
+- name: Remove hello-world image
+  containers.podman.podman_image:
+    name: hello-world
+    state: absent
+    force: true
+
