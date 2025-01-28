@@ -4,31 +4,17 @@
   tags:
     - packages
     - pkgs
-  apt:
+  ansible.builtin.package:
     name: "{{ item }}"
-    state: latest
+    state: present
     update_cache: yes
-  with_items:
-    - "{{ pkgs_deb }}"
+  loop:
+    - "{{ pkgs_distro }}"
   vars:
+    pkgs_distro: "{{ pkgs_deb if ansible_facts['os_family'] in 'Debian' else pkgs_rpm if ansible_facts['os_family'] in 'RedHat' }}"
     sqlite_name: "{{ 'sqlite3' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] >= '24' else 'sqlite' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] < '24' else 'sqlite' }}"
     locate_name: "{{ 'plocate' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] >= '22' else 'locate' if ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] < '22' else 'locate' }}"
-  when:
-    - ansible_facts['os_family'] in ['Debian']
-    #- ansible_facts['distribution'] == 'Ubuntu'
-
-
-- name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
-  tags:
-    - packages
-    - pkgs
-  yum:
-    name: "{{ item }}"
-    state: latest
-  with_items:
-    - "{{ pkgs_rpm }}"
-  when: ansible_facts['os_family'] in ['RedHat']
-
+  when: ansible_facts['os_family'] in ['Debian', 'RedHat']
 
 # SYS
 # Fail2ban
