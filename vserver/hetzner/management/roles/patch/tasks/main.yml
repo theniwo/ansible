@@ -1,9 +1,15 @@
 ---
+- name: Update packages ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.package:
+    name: "*"
+    state: latest
+    update_cache: yes
+
 # deb Part
 - when: ansible_facts['os_family'] in ['Debian']
   block:
-    - name: Update apt-get repo and cache
-      ansible.builtin.apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+    #- name: Update apt-get repo and cache
+      #ansible.builtin.apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
 
     #- name: Install security updates
       #ansible.builtin.command: >
@@ -16,10 +22,10 @@
        #name: "*"
        #state: latest
 
-    - name: Update all packages to their latest version
-      ansible.builtin.apt:
-        name: "*"
-        state: latest
+    #- name: Update all packages to their latest version
+      #ansible.builtin.apt:
+        #name: "*"
+        #state: latest
 
     - name: Reboot
       block:
@@ -43,11 +49,16 @@
 # rpm Part
 - when: ansible_facts['os_family'] in ['RedHat']
   block:
-    - name: Update all packages to their latest version
-      dnf:
-        name: "*"
-        state: latest
-      register: update_result
+    - name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      ansible.builtin.package:
+        name: dnf-utils
+        state: present
+
+    #- name: Update all packages to their latest version
+      #dnf:
+        #name: "*"
+        #state: latest
+      #register: update_result
 
     - name: Reboot
       block:
@@ -55,6 +66,10 @@
           shell: needs-restarting -r; echo $?
           register: reboot_needed
           changed_when: false
+
+        - name: Updated
+          debug:
+            msg: "{{ reboot_needed.stdout_lines }}"
 
         - name: Reboot the server if needed
           reboot:
