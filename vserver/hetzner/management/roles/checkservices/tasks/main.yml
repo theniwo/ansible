@@ -10,21 +10,25 @@
     name: apache2
     state: started
   when: "'apache' in group_names"
+
 - name: "Ensure nginx is running"
   ansible.builtin.systemd:
     name: nginx
     state: started
   when: "'nginx' in group_names"
+
 - name: "Ensure tomcat is running"
   ansible.builtin.systemd:
     name: tomcat9.service
     state: started
   when: "'tomcat' in group_names"
+
 - name: "Ensure bind is running"
   ansible.builtin.systemd:
     name: bind9
     state: started
   when: "'dns' in group_names"
+
 - name: "Ensure ftp is running"
   ansible.builtin.systemd:
     name: incron
