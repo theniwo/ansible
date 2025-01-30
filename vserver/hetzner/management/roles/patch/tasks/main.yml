@@ -29,19 +29,19 @@
 
     - name: Reboot
       block:
-        - name: Check if a reboot is required
+        - name: Check if a reboot is required ({{ ansible_distribution }} {{ ansible_distribution_version }})
           register: reboot_required_file
           ansible.builtin.stat:
             path: /var/run/reboot-required
             checksum_algorithm: sha1
 
-        - name: Reboot and wait up to 5 min
+        - name: Reboot and wait up to 5 min ({{ ansible_distribution }} {{ ansible_distribution_version }})
           ansible.builtin.reboot:
             reboot_timeout: 300
           when: reboot_required_file.stat.exists
           register: reboot_result
 
-        - name: reboot time
+        - name: reboot time ({{ ansible_distribution }} {{ ansible_distribution_version }})
           debug:
             msg: "{{ ansible_hostname }} rebooted in {{ reboot_result.elapsed }} seconds."
           when: reboot_result is defined and 'elapsed' in reboot_result
@@ -62,12 +62,12 @@
 
     - name: Reboot
       block:
-        - name: Check if a reboot is required
+        - name: Check if a reboot is required ({{ ansible_distribution }} {{ ansible_distribution_version }})
           shell: needs-restarting -r; echo $?
           register: reboot_needed
           changed_when: false
 
-        - name: List updated packages require a reboot
+        - name: List updated packages require a reboot ({{ ansible_distribution }} {{ ansible_distribution_version }})
           debug:
             msg: "{{ reboot_needed.stdout_lines }}"
 
@@ -75,13 +75,13 @@
           reboot:
           when: reboot_needed.stdout != "0"
 
-        - name: Wait up to 5 min for the server to come back online
+        - name: Wait up to 5 min for the server to come back online ({{ ansible_distribution }} {{ ansible_distribution_version }})
           wait_for_connection:
             timeout: 300
           when: reboot_needed.stdout != "0"
           register: reboot_result
 
-        - name: reboot time
+        - name: reboot time ({{ ansible_distribution }} {{ ansible_distribution_version }})
           debug:
             msg: "{{ ansible_hostname }} rebooted in {{ reboot_result.elapsed }} seconds."
 
