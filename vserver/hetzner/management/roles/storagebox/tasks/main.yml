@@ -31,7 +31,7 @@
     group: root
     state: link
   ignore_errors: True
-  when: ansible_facts['os_family'] in ['RedHat']
+  when: ansible_facts['os_family'] in ['Debian']
 
 - name: Install latest rclone version
   ansible.builtin.shell: |
