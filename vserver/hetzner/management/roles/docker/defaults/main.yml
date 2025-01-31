@@ -2,5 +2,3 @@
 docker_plugin_rclone_dir: "/var/lib/docker-plugins/rclone"
 docker_plugin_rclone_config_dir: "{{ docker_plugin_rclone_dir }}/config"
 docker_plugin_rclone_cache_dir: "{{ docker_plugin_rclone_dir }}/cache"
-docker_dir: "$HOME/docker/docker"
-docker_compose_dir: "$HOME/docker/docker-compose"
