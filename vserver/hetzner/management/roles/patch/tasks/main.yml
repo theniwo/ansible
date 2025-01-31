@@ -1,33 +1,33 @@
 ---
-- name: Update packages ({{ ansible_distribution }} {{ ansible_distribution_version }})
-  ansible.builtin.package:
-    name: "*"
-    state: latest
-    update_cache: yes
+#- name: Update packages ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  #ansible.builtin.package:
+    #name: "*"
+    #state: latest
+    #update_cache: yes
 
 # deb Part
 - when: ansible_facts['os_family'] in ['Debian']
   block:
-    #- name: Update apt-get repo and cache
+    #- name: Update apt-get repo and cache ({{ ansible_distribution }} {{ ansible_distribution_version }})
       #ansible.builtin.apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
-
-    #- name: Install security updates
+#
+    #- name: Install security updates ({{ ansible_distribution }} {{ ansible_distribution_version }})
       #ansible.builtin.command: >
         #/usr/bin/unattended-upgrades -v
-
-    #- name: Update all host/vm packages
-      #ansible.builtin.apt:
-       #update_cache: true
-       #cache_valid_time: 3600
-       #name: "*"
-       #state: latest
-
-    #- name: Update all packages to their latest version
+#
+    - name: Update all packages to their latest version ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      ansible.builtin.apt:
+       update_cache: true
+       name: "*"
+       cache_valid_time: 3600
+       state: latest
+#
+    #- name: Update all packages to their latest version ({{ ansible_distribution }} {{ ansible_distribution_version }})
       #ansible.builtin.apt:
         #name: "*"
         #state: latest
 
-    - name: Reboot
+    - name: Reboot ({{ ansible_distribution }} {{ ansible_distribution_version }})
       block:
         - name: Check if a reboot is required ({{ ansible_distribution }} {{ ansible_distribution_version }})
           register: reboot_required_file
@@ -54,13 +54,13 @@
         name: dnf-utils
         state: present
 
-    #- name: Update all packages to their latest version
-      #dnf:
-        #name: "*"
-        #state: latest
-      #register: update_result
+    - name: Update all packages to their latest version ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      register: update_result
 
-    - name: Reboot
+    - name: Reboot ({{ ansible_distribution }} {{ ansible_distribution_version }})
       block:
         - name: Check if a reboot is required ({{ ansible_distribution }} {{ ansible_distribution_version }})
           shell: needs-restarting -r; echo $?
@@ -71,7 +71,7 @@
           debug:
             msg: "{{ reboot_needed.stdout_lines }}"
 
-        - name: Reboot the server if needed
+        - name: Reboot the server if needed ({{ ansible_distribution }} {{ ansible_distribution_version }})
           reboot:
           when: reboot_needed.stdout != "0"
 
