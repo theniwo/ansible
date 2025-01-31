@@ -212,20 +212,20 @@
 #    state: mounted
 #    fstype: ext4
 
-- name: Create /var/lib/docker-plugins/rclone/config
+- name: Create {{ docker_plugin_rclone_config_dir }}
   tags:
     - rclone
   ansible.builtin.file:
-    path: /var/lib/docker-plugins/rclone/config
+    path: "{{ docker_plugin_rclone_config_dir }}"
     state: directory
     mode: '0755'
     recurse: true
 
-- name: Create /var/lib/docker-plugins/rclone/cache
+- name: Create {{ docker_plugin_rclone_cache_dir }}
   tags:
     - rclone
   ansible.builtin.file:
-    path: /var/lib/docker-plugins/rclone/cache
+    path: "{{ docker_plugin_rclone_cache_dir }}"
     state: directory
     mode: '0755'
     recurse: true
@@ -251,7 +251,7 @@
     - rclone
   ansible.builtin.file:
     src: /etc/rclone.conf
-    dest: /var/lib/docker-plugins/rclone/config/rclone.conf
+    dest: "{{ docker_plugin_rclone_config_dir }}/rclone.conf"
     owner: root
     group: root
     state: hard
@@ -261,7 +261,7 @@
   tags:
     - scripts
   ansible.builtin.file:
-    path: $HOME/docker/docker
+    path: "{{ docker_dir }}"
     state: directory
     owner: root
     group: root
@@ -272,7 +272,7 @@
   tags:
     - scripts
   ansible.builtin.file:
-    path: $HOME/docker/docker-compose
+    path: "{{ docker_compose_dir }}"
     state: directory
     owner: root
     group: root
