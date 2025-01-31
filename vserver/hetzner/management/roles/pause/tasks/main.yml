@@ -1,0 +1,27 @@
+---
+# tasks file for pause
+- name: Wait for {{ pause }} minutes before continuing
+  ansible.builtin.pause:
+    minutes: "{{ pause }}"
+  #register: pause_result
+
+#- name: Countdown output
+  #ansible.builtin.debug:
+    #msg: "Pausing for {{ pause_result.seconds }} seconds..."
+#
+#- name: Simulate countdown loop
+  #ansible.builtin.debug:
+    #msg: "Counting down: {{ item }} seconds remaining"
+  #loop: "{{ range(pause, 0, -1) | list }}"
+  #delay: 1
+
+#- name: Show countdown message
+  #ansible.builtin.debug:
+    #msg: "Counting down: {{ item }} seconds remaining"
+  #loop: "{{ range(countdown_duration, 0, -1) | list }}"
+
+#- name: Pause for 1 second (except the last iteration)
+  #ansible.builtin.pause:
+    #seconds: "{{ countdown_pause }}"
+  #when: "item != {{ countdown_duration }}"
+  #loop: "{{ range(countdown_duration, 0, -1) | list }}"
