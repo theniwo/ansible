@@ -1,0 +1,4 @@
+---
+docker_dir: "$HOME/docker/docker"
+docker_compose_dir: "$HOME/docker/docker-compose"
+pause: 3

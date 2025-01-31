@@ -1,16 +1,12 @@
 ---
-- hosts: patch
+- name: Restart Docker containers with docker-compose
+  hosts: docker_server
   become: true
   become_user: root
   environment:
     LC_ALL: C
     LANG: C
   roles:
-    - role: patch
-      tags: patch
-    - role: pause
-      tags: pause
     - role: docker-restart
       tags: docker-restart
-    #- role: checkservices
-      #tags: checkservices
+

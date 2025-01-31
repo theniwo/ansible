@@ -1,0 +1,81 @@
+---
+# tasks file for docker-restart
+- name: Get all Docker volumes using CLI
+  ansible.builtin.command:
+    cmd: docker volume ls --format '{{ "{{" }}.Driver{{ "}}" }} {{ "{{" }}.Name{{ "}}" }}'
+  register: docker_volumes_raw
+  changed_when: false
+
+#- name: Show extracted Rclone volumes (optional)
+  #ansible.builtin.debug:
+    #var: docker_volumes_raw
+
+- name: Convert volume list to array
+  ansible.builtin.set_fact:
+    docker_volumes: "{{ docker_volumes_raw.stdout_lines }}"
+
+- name: Extract only Rclone volumes
+  ansible.builtin.set_fact:
+    rclone_volumes: "{{ docker_volumes | select('search', '^rclone:') | map('split', ' ') | map('last') | list }}"
+
+- name: Show extracted Rclone volumes (optional)
+  ansible.builtin.debug:
+    var: rclone_volumes
+
+- name: Stop and remove multiple Docker Compose stacks
+  community.docker.docker_compose_v2:
+    project_src: "{{ item }}"
+    state: absent
+  loop: "{{ docker_compose_paths }}"
+  register: compose_results
+
+#- name: Show output for each stack (optional)
+  #ansible.builtin.debug:
+    #msg: "Stopped project {{ item.item }}"
+  #loop: "{{ compose_results.results }}"
+  #when: item.changed
+
+- name: Remove {{ docker_plugin_state_file }}
+  ansible.builtin.file:
+    path: "{{ docker_plugin_state_file }}"
+    state: absent
+
+- name: Remove Docker volumes
+  community.docker.docker_volume:
+    name: "{{ item }}"
+    state: absent
+    timeout: 300
+  loop: "{{ rclone_volumes }}"
+  register: volume_results
+
+#- name: Show removed volumes (optional)
+  #ansible.builtin.debug:
+    #msg: "Removed volume {{ item.item }}"
+  #loop: "{{ volume_results.results }}"
+  #when: item.changed
+
+- name: Manage Docker plugins
+  community.docker.docker_plugin:
+    plugin_name: "{{ item.name }}"
+    state: "{{ item.state }}"
+  loop: "{{ docker_plugins }}"
+  register: plugin_results
+
+#- name: Show plugin status (optional)
+  #ansible.builtin.debug:
+    #msg: "Plugin {{ item.item.name }} is now {{ item.item.state }}"
+  #loop: "{{ plugin_results.results }}"
+
+- name: Start Docker Compose stacks
+  community.docker.docker_compose_v2:
+    project_src: "{{ item }}"
+    state: present
+  loop: "{{ docker_compose_paths }}"
+  register: compose_results
+
+#- name: Show output for each stack (optional)
+  #ansible.builtin.debug:
+    #msg: "Stopped project {{ item.item }}"
+  #loop: "{{ compose_results.results }}"
+  #when: item.changed
+
