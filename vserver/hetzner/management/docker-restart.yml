@@ -1,11 +1,18 @@
 ---
-- name: Restart Docker containers with docker-compose
+- name: Rebuild Docker containers
   hosts: docker_server
   become: true
   become_user: root
   environment:
     LC_ALL: C
     LANG: C
+  pre_tasks:
+    - name: "Set Variables"
+      tags:
+        - docker
+        - docker-restart
+      ansible.builtin.include_vars:
+        file: docker.yml
   roles:
     - role: docker-restart
       tags: docker-restart

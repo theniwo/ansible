@@ -1,5 +1,6 @@
 ---
 # defaults file for docker-restart
+docker_compose_path: "$HOME/docker/docker-compose"
 docker_compose_paths:
   - "{{ docker_compose_dir }}/nextcloud"
   - "{{ docker_compose_dir }}/servarr"

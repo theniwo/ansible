@@ -22,13 +22,85 @@
   ansible.builtin.debug:
     var: rclone_volumes
 
+- name: Get all running Docker containers using CLI
+  ansible.builtin.command:
+    cmd: docker ps --format '{{ "{{" }}.Names{{ "}}" }} {{ "{{" }}.Labels{{ "}}" }}'
+  register: docker_containers_raw
+  changed_when: false
+
+#- name: Show extracted containers (optional)
+  #ansible.builtin.debug:
+    #var: docker_containers_raw
+
+- name: Convert container list to array
+  ansible.builtin.set_fact:
+    docker_containers_array: "{{ docker_containers_raw.stdout_lines }}"
+
+- name: Extract Container names for docker by label
+  ansible.builtin.set_fact:
+    docker_docker_containers: "{{ docker_containers_array | reject('search', 'compose') | map('split', ' ') | map('first') | list }}"
+
+- name: Extract Container names for docker-compose by label
+  ansible.builtin.set_fact:
+    docker_compose_containers: "{{ docker_containers_array | select('search', 'compose') | map('split', ' ') | map('first') | map('split', '-') | map('first') | unique | list }}"
+
+#- name: Get all running Docker containers using CLI by names
+  #ansible.builtin.command:
+    #cmd: docker ps --format "table '{{ "{{" }}.Names{{ "}}" }}'"
+  #register: docker_containers_raw
+  #changed_when: false
+#
+#- name: Show extracted containers (optional) by names
+  #ansible.builtin.debug:
+    #var: docker_containers_raw
+#
+#- name: Convert container list to array by names
+  #ansible.builtin.set_fact:
+    #docker_containers_array: "{{ docker_containers_raw.stdout_lines }}"
+    #
+#- name: Extract Container names for docker by name
+  #ansible.builtin.set_fact:
+    #docker_docker_containers: "{{ docker_containers_array | reject('search', '-1') | list }}"
+#
+#- name: Extract Container names for docker-compose by name
+  #ansible.builtin.set_fact:
+    #docker_compose_containers: "{{ docker_containers_array | select('search', '-1') | list }}"
+
+- name: Show extracted Docker containers (optional)
+  ansible.builtin.debug:
+    var: docker_docker_containers
+
+- name: Show extracted Docker-Compose containers (optional)
+  ansible.builtin.debug:
+    var: docker_compose_containers
+
+- name: Stop and remove multiple Docker containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ docker_docker_containers }}"
+  register: docker_results
+
 - name: Stop and remove multiple Docker Compose stacks
   community.docker.docker_compose_v2:
-    project_src: "{{ item }}"
+    project_src: "{{ docker_compose_path }}/{{ item }}"
     state: absent
-  loop: "{{ docker_compose_paths }}"
+  loop: "{{ docker_compose_containers }}"
   register: compose_results
 
+#- name: Stop and remove multiple Docker Compose stacks
+  #community.docker.docker_compose_v2:
+    #project_src: "{{ item }}"
+    #state: absent
+  #loop: "{{ docker_compose_paths }}"
+  #register: compose_results
+
+#- name: Show output for each container (optional)
+  #ansible.builtin.debug:
+    #msg: "Stopped project {{ item.item }}"
+  #loop: "{{ docker_results.results }}"
+  #when: item.changed
+#
 #- name: Show output for each stack (optional)
   #ansible.builtin.debug:
     #msg: "Stopped project {{ item.item }}"
@@ -66,16 +138,34 @@
     #msg: "Plugin {{ item.item.name }} is now {{ item.item.state }}"
   #loop: "{{ plugin_results.results }}"
 
+#- name: Start Docker containers
+  #community.docker.docker_container:
+    #name: "{{ item }}"
+    #state: present
+  #loop: "{{ docker_docker_containers }}"
+  #register: docker_results
+
+- name: Start Docker containers
+  ansible.builtin.shell: "{{ docker_dir }}/{{ item }}"
+  loop: "{{ docker_docker_containers }}"
+  register: docker_results
+
 - name: Start Docker Compose stacks
   community.docker.docker_compose_v2:
-    project_src: "{{ item }}"
+    project_src: "{{ docker_compose_path }}/{{ item }}"
     state: present
-  loop: "{{ docker_compose_paths }}"
+  loop: "{{ docker_compose_containers }}"
   register: compose_results
 
+#- name: Show output for each container (optional)
+  #ansible.builtin.debug:
+    #msg: "Stopped project {{ item.item }}"
+  #loop: "{{ docker_results.results }}"
+  #when: item.changed
+#
 #- name: Show output for each stack (optional)
   #ansible.builtin.debug:
     #msg: "Stopped project {{ item.item }}"
   #loop: "{{ compose_results.results }}"
   #when: item.changed
-
+#
