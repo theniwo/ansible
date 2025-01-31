@@ -8,5 +8,5 @@
   roles:
     - role: patch
       tags: patch
-    - role: checkservices
-      tags: checkservices
+    #- role: checkservices
+      #tags: checkservices
