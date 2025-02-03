@@ -83,16 +83,16 @@
 
 - name: Stop and remove multiple Docker Compose stacks
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/{{ item }}"
+    project_src: "{{ docker_compose_dir }}/{{ item }}"
     state: absent
   loop: "{{ docker_compose_containers }}"
   register: compose_results
 
 #- name: Stop and remove multiple Docker Compose stacks
   #community.docker.docker_compose_v2:
-    #project_src: "{{ item }}"
+    #project_src: "{{ docker_compose_dir }}/{{ item }}"
     #state: absent
-  #loop: "{{ docker_compose_paths }}"
+  #loop: "{{ docker_compose_containers }}"
   #register: compose_results
 
 #- name: Show output for each container (optional)
@@ -152,7 +152,7 @@
 
 - name: Start Docker Compose stacks
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_compose_path }}/{{ item }}"
+    project_src: "{{ docker_compose_dir }}/{{ item }}"
     state: present
   loop: "{{ docker_compose_containers }}"
   register: compose_results

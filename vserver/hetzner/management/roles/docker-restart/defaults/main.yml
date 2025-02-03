@@ -1,14 +1,2 @@
 ---
 # defaults file for docker-restart
-docker_compose_path: "$HOME/docker/docker-compose"
-docker_compose_paths:
-  - "{{ docker_compose_dir }}/nextcloud"
-  - "{{ docker_compose_dir }}/servarr"
-docker_plugin_state_file: "/var/lib/docker-plugins/rclone/cache/docker-plugin.state"
-docker_plugins:
-  - name: "rclone:latest"
-    state: "enable"
-docker_volumes:
-  - "nextcloud_data"
-  - "servarr_data"
-  - "servarr_media"
