@@ -2,11 +2,11 @@
 - name: Install necessary packages
   import_tasks: install.yml
 
-- name: Configure docker
+- name: Configure {{ ansible_role_name }}
   import_tasks: configure.yml
 
 - name: Install plugins
   import_tasks: plugins.yml
 
-- name: Test docker
+- name: Test {{ ansible_role_name }}
   import_tasks: test.yml
