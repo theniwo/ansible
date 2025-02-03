@@ -321,8 +321,8 @@
 - name: Copy dockerrc
   tags:
     - scripts
-  ansible.builtin.copy:
-    src: ../files/dockerrc
+  ansible.builtin.template:
+    src: dockerrc.j2
     dest: $HOME/.dockerrc
     owner: root
     group: root
