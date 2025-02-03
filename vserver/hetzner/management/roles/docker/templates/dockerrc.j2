@@ -1,0 +1,39 @@
+export d_docker_cont="{{ docker_dir }}"
+export d_docker_comp="{{ docker_compose_dir }}"
+{% raw %}
+alias dockerps='while true; do clear && nice docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | (read -r; printf "%s\n" "$REPLY"; sort -k 1 ) | cut -c-$(tput cols) && sleep 2; done'
+alias dockerstats='while true; do nice docker stats --format "table {{.Name}}\t{{.CPUPerc}}  |  {{.MemPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}"; done'
+# Set own bash completion
+#cont
+_cont_completions()
+{
+  if [ "${#COMP_WORDS[@]}"  = "2" ]; then
+    COMPREPLY=($(compgen -W "mod edit status start up restart reload recreate rebuild stop remove down pause halt unpause unhalt push pull purge -u --usage -h --help -?" -- "${COMP_WORDS[1]}"))
+  else
+    local containers=$(ls -p $d_docker_cont | grep -v -e "\..*" -e "/" | tr '\n' ' ')
+    for i in "${#COMP_WORDS[@]}"; do
+      COMPREPLY=($(compgen -W "$containers"  -- "${COMP_WORDS[$i-1]}"))
+    done
+  fi
+}
+
+if [ -d $d_docker_cont ]; then
+        complete -F _cont_completions cont
+fi
+#comp
+_comp_completions()
+{
+  if [ "${#COMP_WORDS[@]}"  = "2" ]; then
+    COMPREPLY=($(compgen -W "mod edit status start up restart reload recreate rebuild stop remove down pause purge halt unpause unhalt push pull -u --usage -h --help -?" -- "${COMP_WORDS[1]}"))
+  else
+    #local containers=$(ls $HOME/Settings/Linux/scripts/docker/$HOSTNAME/docker-compose | grep -v -e "\..*" -e "\/" | tr '\n' ' ')
+    local containers=$(find $d_docker_comp -maxdepth 1 -type d  -printf '%f\n' | sort | tr '\n' ' ')
+    for i in "${#COMP_WORDS[@]}"; do
+      COMPREPLY=($(compgen -W "$containers"  -- "${COMP_WORDS[$i-1]}"))
+    done
+  fi
+}
+if [ -d $d_docker_comp ]; then
+        complete -F _comp_completions comp
+fi
+{% endraw %}
