@@ -5,6 +5,16 @@
   environment:
     LC_ALL: C
     LANG: C
+  pre_tasks:
+    - name: "Set Variables for podman"
+      tags:
+        - podman
+        - configure
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - podman.yml
+        - scripts.yml
   roles:
     - role: podman
       tags: podman

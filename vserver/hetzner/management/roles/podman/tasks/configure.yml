@@ -5,7 +5,7 @@
     state: touch
 
 - name: Get users with UID > 1000
-  ansible.buildin.command: awk -F: '$3 > 1000 {print $1}' /etc/passwd
+  ansible.builtin.shell: "awk -F: '$3 >= 1000 {print $1}' /etc/passwd | grep -v nobody"
   register: user_list
 
 - name: Store users in a variable
@@ -17,13 +17,14 @@
     var: users_above_1000
 
 - name: Enable linger for each user
-    ansible.builtin.command:
-      cmd: loginctl enable-linger {{ item }}
-    loop: "{{ user_list.stdout_lines }}"
-    become: true
-    changed_when: false
-    ignore_errors: true
+  ansible.builtin.command:
+    cmd: "loginctl enable-linger {{ item }}"
+  loop: "{{ users_above_1000}}"
+  become: true
+  changed_when: false
+  ignore_errors: true
 
+  # without loop
 #- name: Enable linger for user ID 1000
   #ansible.builtin.command:
     #cmd: loginctl enable-linger 1000
@@ -31,3 +32,138 @@
   #changed_when: false
   #ignore_errors: true
 
+- name: Create directories for {{ ansible_role_name }} files
+  tags:
+    - scripts
+  ansible.builtin.file:
+    path: "/home/{{ item }}{{ docker_docker_dir }}"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: '0775'
+    recurse: yes
+  loop: "{{ users_above_1000 }}"
+  become: true
+  #become_user: "{{ users_above_1000 }}"
+
+- name: Create directories for {{ ansible_role_name }}-compose files
+  tags:
+    - scripts
+  ansible.builtin.file:
+    path: "/home/{{ item }}/{{ docker_compose_dir }}"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: '0775'
+    recurse: yes
+  loop: "{{ users_above_1000 }}"
+  become: true
+  #become_user: "{{ users_above_1000 }}"
+
+#- name: Create directories for {{ ansible_role_name }} files
+#  tags:
+#    - scripts
+#  ansible.builtin.file:
+#    path: "{{ docker_docker_dir }}"
+#    state: directory
+#    owner: root
+#    group: root
+#    mode: 0775
+#    recurse: yes
+#
+#- name: Create directories for {{ ansible_role_name }}-compose files
+#  tags:
+#    - scripts
+#  ansible.builtin.file:
+#    path: "{{ docker_compose_dir }}"
+#    state: directory
+#    owner: root
+#    group: root
+#    mode: 0775
+#    recurse: yes
+
+- name: Copy healthcheck_{{ ansible_role_name }}
+  tags:
+    - scripts
+  ansible.builtin.copy:
+    src: "healthcheck_{{ ansible_role_name }}"
+    dest: "{{ bin_path }}/healthcheck_{{ ansible_role_name }}"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create Cronjob
+  tags:
+    - cron
+  ansible.builtin.cron:
+    name: "healthcheck_{{ ansible_role_name }}"
+    minute: "*/30"
+    hour: "8-21"
+    job: "{{ bin_path }}/healthcheck_{{ ansible_role_name }} >/dev/null"
+    user: root
+
+- name: Copy cont command
+  tags:
+    - scripts
+  ansible.builtin.copy:
+    src: cont
+    dest: "{{ bin_path }}/cont"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Copy comp command
+  tags:
+    - scripts
+  ansible.builtin.copy:
+    src: comp
+    dest: "{{ bin_path }}/comp"
+    owner: root
+    group: root
+    mode: '0755'
+
+##- name: Copy dockerrc
+##  tags:
+##    - scripts
+##  ansible.builtin.template:
+##    src: dockerrc.j2
+##    dest: $HOME/.dockerrc
+##    owner: root
+##    group: root
+##    mode: '0755'
+##
+##- name: Insert source command to .bashrc
+##  tags:
+##    - scripts
+##  ansible.builtin.blockinfile:
+##    path: $HOME/.bashrc
+##    block: |
+##      if [ -f $HOME/.dockerrc ]; then
+##        . $HOME/.dockerrc
+##      fi
+
+
+
+- name: Copy dockerrc
+  tags:
+    - scripts
+  ansible.builtin.template:
+    src: dockerrc.j2
+    dest: "/home/{{ item }}/.dockerrc"
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: '0755'
+  loop: "{{ users_above_1000 }}"
+  become: true
+
+- name: Insert source command to .bashrc
+  tags:
+    - scripts
+  ansible.builtin.blockinfile:
+    path: "/home/{{ item }}/.bashrc"
+    block: |
+      if [ -f $HOME/.dockerrc ]; then
+        . $HOME/.dockerrc
+      fi
+  loop: "{{ users_above_1000 }}"
+  become: true

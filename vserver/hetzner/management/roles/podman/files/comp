@@ -1,0 +1,305 @@
+#/usr/bin/env bash
+
+
+# Comment
+#set -eo pipefail
+set -euo pipefail
+
+# Change the current working directory to the scripts directory temporary
+#dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+dir="$d_docker_comp"
+
+# The first parameter has to be one of these: start/stop/...
+parameter=($1)
+
+# The name/s of containers to manipulate (2nd to nth parameter)
+name="${@:2}"
+
+# Count the parameters
+aLen=$#
+
+# We need a working directory, otherwise we'd have to put $dir in front of every $name. you decide what is best ;)
+cd "$dir"
+
+# Command line options
+OPTS="--log-level error"
+
+# Docker compose may be not installed, use docker compose plugin then
+if ! docker-compose &>/dev/null; then
+	if [ -z "$NOCOMPOSE" ]; then
+		echo -e "No docker-compose installed. Using docker compose plugin\nSet NOCOMPOSE, to suppress this message."
+	fi
+	docker_compose="$(which docker) $OPTS compose"
+else
+  	docker_compose=$(which docker-compose) $OPTS
+fi
+
+# Check if file is found and/or executable. If parameter "edit" then we create a new file. Not doing chmod +x automatically for now.
+checkstat(){
+for i in ${name[@]}; do
+if [[ ! -d $dir/$i ]] && [[ $parameter != edit ]];then
+    	echo "$i not found! Use edit to create a new one"
+    	exit
+elif [[ ! -f $dir/$i/docker-compose.yml ]]; then
+    	echo "$i service file not found! Use edit to create a new one"
+    	exit
+fi
+done
+}
+
+# Begin of the magic
+case "$parameter" in
+   mod)
+   	editor $0
+   ;;
+
+   delete|rm)
+	checkstat
+	for i in ${name[@]}; do
+	if [[ -d $i ]];then
+	    	echo "Do you really want to delete all service files for $i?"
+		select yn in "Yes" "No"; do
+		    case $yn in
+		        Yes ) rm -fr $dir/$i; break;;
+		        No ) exit;;
+		    esac
+		done
+	fi
+	done
+   ;;
+
+   edit)
+	#checkstat
+	for i in ${name[@]}; do
+	if [ ! -d $i ]; then
+	    	echo "Do you want to create a new container named $i?"
+		select yn in "Yes" "No"; do
+		    case $yn in
+		        Yes ) mkdir $dir/$i && editor $dir/$i/docker-compose.yml; break;;
+		        No ) exit;;
+		    esac
+		done
+		#exit
+	else
+		editor $dir/$i/docker-compose.yml
+   	fi
+	done
+   ;;
+
+   cat|ls|list)
+	#checkstat
+	for i in ${name[@]}; do
+	if [ ! -d $i ]; then
+	    	echo "Do you want to create a new container named $i?"
+		select yn in "Yes" "No"; do
+		    case $yn in
+		        Yes ) mkdir $dir/$i && editor $dir/$i/docker-compose.yml; break;;
+		        No ) exit;;
+		    esac
+		done
+		#exit
+	else
+		cat $dir/$i/docker-compose.yml
+   	fi
+	done
+   ;;
+
+   status|ps)
+	checkstat
+	printf '   Name           Command         State    Ports\n-------------------------------------------------\n'
+	for i in ${name[@]}; do
+	if [[ -f "$dir/$i/docker-compose.yml" ]]; then
+	cd $dir/$i && $docker_compose ps | grep -v -e Name -e ^-
+	  #if docker-compose "$dir/$i" ps | grep '"Paused"'  >/dev/null 2>&1; then
+	  #echo "$i is paused"
+	  #elif docker-compose "$i" ps | grep '"Restarting"'  >/dev/null 2>&1;then
+	    #echo "$i is restarting"
+	  #elif docker-compose "$i" ps | grep '"Stopped'  >/dev/null 2>&1;then
+	    #echo "$i is stopped"
+	  #elif docker-compose "$i" ps | grep '"Up'  >/dev/null 2>&1; then
+	    #echo "$i is up"
+	#fi
+	else
+	echo "No Container named $i"
+	fi
+	done
+        ;;
+
+   start|up)
+	checkstat
+	for i in ${name[@]}; do
+	cd $dir/$i
+	$docker_compose --file $dir/$i/docker-compose.yml up -d
+	#if docker inspect "$i" >/dev/null 2>&1; then
+	  #if docker inspect "$i" | grep '"Running": true,'  >/dev/null 2>&1; then
+	    #echo "$i already started"
+	  #elif docker inspect "$i" | grep '"Running": false,'  >/dev/null 2>&1;then
+	    #echo "Starting $i"
+	    #docker start "$i"  >/dev/null
+	  #fi
+	#else
+	  #echo "Starting new $i"
+	  #./$i >/dev/null
+	#fi
+	done
+        ;;
+
+   restart|reload)
+	checkstat
+	for i in ${name[@]}; do
+	cd $dir/$i
+	$docker_compose --file $dir/$i/docker-compose.yml restart
+
+	#if docker inspect "$i" >/dev/null 2>&1; then
+	  #echo "Restarting $i"
+	  #docker restart "$i" >/dev/null 2>&1
+	#else
+	  #echo "$i not running"
+	#fi
+	done
+        ;;
+
+   recreate|rebuild)
+	checkstat
+	for i in ${name[@]}; do
+	cd $dir/$i
+	$docker_compose --file $dir/$i/docker-compose.yml down
+	$docker_compose --file $dir/$i/docker-compose.yml up -d
+	#if docker inspect "$i" >/dev/null 2>&1; then
+	  #echo "Stopping $i"
+	  #docker stop $i >/dev/null 2>&1
+	  #echo "Removing $i"
+	  #docker rm "$i" >/dev/null 2>&1
+	#else
+	  #echo "$i already stopped"
+	#fi
+	  #echo "Starting $i"
+	  #"./$i" >/dev/null
+	done
+        ;;
+
+   stop)
+	checkstat
+	for i in ${name[@]}; do
+	cd $dir/$i
+	$docker_compose --file $dir/$i/docker-compose.yml stop
+	#if docker inspect "$i" | grep '"Running": true,'  >/dev/null 2>&1; then
+	  #echo "Stopping $i"
+	  #docker stop "$i" >/dev/null 2>&1
+	#else
+	  #echo "$i already stopped"
+	#fi
+	done
+        ;;
+
+   remove|down)
+	checkstat
+	for i in ${name[@]}; do
+	cd $dir/$i
+	$docker_compose --file $dir/$i/docker-compose.yml down
+	#if docker inspect "$i" >/dev/null 2>&1; then
+	#if docker inspect "$i" | grep '"Running": true,'  >/dev/null 2>&1; then
+	  #echo "Stopping $i"
+	  #docker stop "$i" >/dev/null 2>&1
+	  #echo "Removing $i"
+	  #docker rm "$i" >/dev/null 2>&1
+	#elif docker inspect "$i" | grep '"Running": false,'  >/dev/null 2>&1; then
+	  #echo "Removing $i"
+	  #docker rm "$i" >/dev/null 2>&1
+	#else
+	  #echo "$i already removed"
+	#fi
+	#fi
+	done
+        ;;
+
+   purge)
+	checkstat
+	for i in ${name[@]}; do
+	cd $dir/$i
+	$docker_compose --file $dir/$i/docker-compose.yml down -v --remove-orphans
+	#if docker inspect "$i" >/dev/null 2>&1; then
+	#if docker inspect "$i" | grep '"Running": true,'  >/dev/null 2>&1; then
+	  #echo "Stopping $i"
+	  #docker stop "$i" >/dev/null 2>&1
+	  #echo "Removing $i"
+	  #docker rm "$i" >/dev/null 2>&1
+	#elif docker inspect "$i" | grep '"Running": false,'  >/dev/null 2>&1; then
+	  #echo "Removing $i"
+	  #docker rm "$i" >/dev/null 2>&1
+	#else
+	  #echo "$i already removed"
+	#fi
+	#fi
+	done
+        ;;
+
+   pause|halt)
+	checkstat
+	for i in ${name[@]}; do
+	cd $dir/$i
+	$docker_compose --file $dir/$i/docker-compose.yml pause
+	#if docker inspect "$i" | grep '"Running": true,'  >/dev/null 2>&1; then
+	#if docker inspect "$i" | grep '"Paused": true,'  >/dev/null 2>&1; then
+	  #echo "$i already paused"
+	#else
+	  #echo "Pausing $i"
+	  #docker pause "$i" >/dev/null 2>&1
+	#fi
+	#else
+	  #echo "$i is not running"
+	#fi
+	done
+        ;;
+
+   unpause|unhalt)
+	checkstat
+	for i in ${name[@]}; do
+	cd $dir/$i
+	$docker_compose --file $dir/$i/docker-compose.yml unpause
+	#if docker inspect "$i" | grep '"Paused": false,'  >/dev/null 2>&1; then
+	  #echo "$i already unpaused"
+	#else
+	  #echo "Unpausing $i"
+	  #docker unpause "$i" >/dev/null 2>&1
+	#fi
+	done
+        ;;
+
+   pull)
+	checkstat
+	for i in ${name[@]}; do
+	cd $dir/$i
+	eval $docker_compose --file $dir/$i/docker-compose.yml pull
+	done
+	;;
+
+   -u|--usage)
+        printf "Use either $0 edit, delete/rm, start/up, stop, restart/reload, recreate/rebuild\nremove/down, pause, unpause, or -h/-?/--help for further information\n"
+   	;;
+
+   -h|--help|-?)
+	printf "\n\tUsage:\n\t$0 action container/s\n\n\
+	Actions:\n\
+	edit\t\t-\tedit configuration file\n\
+	delete/rn\t-\tremoves configuration file\n\
+	start/up\t-\tbuilds and starts a container\n\
+	restart/reload\t-\trestarts a running containter\n\
+	recreate/rebuild-\trecreates a running container\n\
+	stop\t\t-\tstops a running container\n\
+	remove/down\t-\tstops and deletes a (running) container\n\
+	(un)pause\t-\t(un)pauses a running/paused container\n\
+	\n"
+	;;
+
+   *)
+        if [[ "$aLen" -lt 1 ]]; then
+          "$0" --usage
+        else
+          #for (( i=0; i<${aLen};  i++)); do
+	for i in "${name[@]}"; do
+	    docker "$1" "$i"
+          done
+        fi
+        ;;
+esac

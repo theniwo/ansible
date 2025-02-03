@@ -1,0 +1,31 @@
+---
+# Paths
+docker_dir: "docker"
+docker_docker_dir: "{{ docker_dir }}/docker"
+docker_compose_dir: "{{ docker_dir }}/docker-compose"
+
+# Containers
+docker_docker_containers:
+  - "jdownloader"
+  - "watchtower"
+docker_compose_containers:
+  - "audiobookshelf"
+  - "baikal"
+  - "joplin"
+  - "nextcloud"
+  - "nginx-proxy-manager"
+  - "nginx-webserver"
+  - "paperless"
+  - "servarr"
+
+# Plugins
+docker_plugin_state_file: "/var/lib/docker-plugins/rclone/cache/docker-plugin.state"
+docker_plugins:
+  - name: "rclone:latest"
+    state: "enable"
+
+# Volumes
+docker_volumes:
+  - "nextcloud_data"
+  - "servarr_data"
+  - "servarr_media"

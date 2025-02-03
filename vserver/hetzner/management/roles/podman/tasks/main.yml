@@ -3,6 +3,8 @@
   import_tasks: install.yml
 
 - name: Configure {{ ansible_role_name }}
+  tags:
+    - configure
   import_tasks: configure.yml
 
 - name: Test {{ ansible_role_name }}

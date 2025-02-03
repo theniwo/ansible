@@ -1,0 +1,294 @@
+#/usr/bin/env bash
+
+set -eo pipefail
+#set -euo pipefail
+
+# Change the current working directory to the scripts directory temporary
+#dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+dir="$d_docker_cont"
+
+# The first parameter has to be one of these: start/stop/...
+parameter=($1)
+
+# The name/s of containers to manipulate (2nd to nth parameter)
+name=${@:2}
+
+# Count the parameters
+aLen=$#
+
+# We need a working directory, otherwise we'd have to put $dir in front of every $name. you decide what is best ;)
+cd "$dir"
+
+# Check if file is found and/or executable.
+# If parameter "edit" then we create a new file.
+# Not doing chmod +x automatically for now.
+checkstat(){
+for i in ${name[@]}; do
+if [[ ! -f $i ]];then
+    if [[ $parameter != edit ]];then
+    	echo "File $i not found! Use edit to create a new one"
+    	exit
+    fi
+elif [[ ( ! -x $i ) && ( ( $parameter = start ) || ( $parameter = up ) ) ]] ;then
+    	echo "File $i is not executable!"
+	echo "Do you wish to make it executable?"
+	select yn in "Yes" "No"; do
+	    case $yn in
+	        Yes ) chmod +x $dir/$i; break;;
+	        No ) exit;;
+	    esac
+	done
+fi
+done
+}
+
+# Begin of the magic
+case "$parameter" in
+
+   # Edit Myself
+   mod)
+   editor $0
+   ;;
+
+   start|up)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect $i >/dev/null 2>&1; then
+	  if docker inspect $i | grep '"Running": true,'  >/dev/null 2>&1; then
+	    echo "$i already started"
+	  elif docker inspect $i | grep '"Running": false,'  >/dev/null 2>&1;then
+	    echo "Starting $i"
+	    docker start $i  >/dev/null
+	  fi
+	else
+	  echo "Starting new $i"
+	  ./$i >/dev/null
+	fi
+	done
+        ;;
+
+   stop)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect $i | grep '"Running": true,'  >/dev/null 2>&1; then
+	  echo "Stopping $i"
+	  docker stop $i >/dev/null 2>&1
+	else
+	  echo "$i already stopped"
+	fi
+	done
+        ;;
+
+   delete)
+	checkstat
+	if [[ -f ${name[@]} ]];then
+	    	echo "Do you really want to delete the service file ${name[@]}?"
+		select yn in "Yes" "No"; do
+		    case $yn in
+		        Yes ) rm $dir/${name[@]}; break;;
+		        No ) exit;;
+		    esac
+		done
+	fi
+   ;;
+
+   edit)
+	checkstat
+	for i in ${name[@]}; do
+	if [ ! -f $i ]; then
+	    	echo "Do you want to create a new container named $i?"
+		select yn in "Yes" "No"; do
+		    case $yn in
+		        Yes ) editor $name; break;;
+		        No ) exit;;
+		    esac
+		done
+		#exit
+	else
+		editor $name
+   	fi
+	done
+   ;;
+
+   status)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect "$i" >/dev/null 2>&1; then
+	  if docker inspect "$i" | grep '"Paused": true,'  >/dev/null 2>&1; then
+	  echo "$i is paused"
+	  elif docker inspect "$i" | grep '"Running": false,'  >/dev/null 2>&1;then
+	    echo "$i is stopped"
+	  elif docker inspect "$i" | grep '"Running": true,'  >/dev/null 2>&1; then
+	    echo "$i is running"
+	fi
+	fi
+	done
+        ;;
+
+   restart|reload)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect $i >/dev/null 2>&1; then
+	  echo "Restarting $i"
+	  docker restart $i >/dev/null 2>&1
+	else
+	  echo "$i not running"
+	fi
+	done
+        ;;
+
+   recreate|rebuild)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect "$i" >/dev/null 2>&1; then
+	  echo "Stopping $i"
+	  docker stop $i >/dev/null 2>&1
+	  echo "Removing $i"
+	  docker rm "$i" >/dev/null 2>&1
+	else
+	  echo "$i already stopped"
+	fi
+	  echo "Starting $i"
+	  "./$i" >/dev/null
+	done
+        ;;
+
+   purge)
+        checkstat
+	for i in ${name[@]}; do
+	if docker inspect "$i" >/dev/null 2>&1; then
+	  echo "Stopping $i"
+	  docker stop --time 5 "$i" >/dev/null 2>&1
+	  echo "Purging $i"
+	  docker rm $i --force --volumes >/dev/null 2>&1
+	else
+	  echo "$i already stopped! Start and purge again."
+	fi
+	done
+        ;;
+
+   remove|down)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect "$i" >/dev/null 2>&1; then
+	if docker inspect "$i" | grep '"Running": true,'  >/dev/null 2>&1; then
+	  echo "Stopping $i"
+	  docker stop "$i" >/dev/null 2>&1
+	  echo "Removing $i"
+	  docker rm "$i" >/dev/null 2>&1
+	elif docker inspect "$i" | grep '"Running": false,'  >/dev/null 2>&1; then
+	  echo "Removing $i"
+	  docker rm "$i" >/dev/null 2>&1
+	else
+	  echo "$i already removed"
+	fi
+	fi
+	done
+        ;;
+
+   pause|halt)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect "$i" | grep '"Running": true,'  >/dev/null 2>&1; then
+	if docker inspect "$i" | grep '"Paused": true,'  >/dev/null 2>&1; then
+	  echo "$i already paused"
+	else
+	  echo "Pausing $i"
+	  docker pause "$i" >/dev/null 2>&1
+	fi
+	else
+	  echo "$i is not running"
+	fi
+	done
+        ;;
+
+   unpause|unhalt)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect "$i" | grep '"Paused": false,'  >/dev/null 2>&1; then
+	  echo "$i already unpaused"
+	else
+	  echo "Unpausing $i"
+	  docker unpause "$i" >/dev/null 2>&1
+	fi
+	done
+        ;;
+
+   push)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect "$i" >/dev/null 2>&1; then
+	  image=$(docker inspect "$i" | grep Image | grep -v sha | awk '{printf $2}'| sed -e s/\"//g -e s/,//)
+	  echo pushing "$image"
+	  docker push "$image"
+	  echo
+	else
+	  printf "$i not running!\n\n"
+	fi
+	done
+	;;
+
+   pull)
+	checkstat
+	for i in ${name[@]}; do
+	if docker inspect "$i" >/dev/null 2>&1; then
+	  image=$(docker inspect "$i" | grep Image | grep -v sha | awk '{printf $2}'| sed -e s/\"//g -e s/,//)
+	  echo pulling "$image"
+	  docker pull "$image"
+	  echo
+	else
+	  printf "$i not running!\n"
+	  image=$(grep -v -e '\\' -e '#' -e '^$' $i | awk -v OFS="\t" '$1=$1') # This is a crappy workaround
+	  echo pulling "$image"
+	  docker pull "$image"
+	  echo
+	fi
+	done
+	;;
+
+   pullrunning)
+	checkstat
+   	cd $dir
+	for i in *; do
+	if docker inspect "$i" >/dev/null 2>&1; then
+	  image=$(docker inspect "$i" | grep Image | grep -v sha | awk '{printf $2}'| sed -e s/\"//g -e s/,//)
+	  echo pulling "$image"
+	  docker pull "$image"
+	  echo
+	#else
+	  #printf "$i not running!\n"
+	  #echo
+	fi
+	done
+	;;
+
+   -u|--usage)
+        printf "Use either $0 edit, delete/rm, start/up, stop, restart/reload, recreate/rebuild\nremove/down, pause, unpause, push, pull or -h/-?/--help for further information\n"
+   	;;
+
+   -h|--help|-?)
+	printf "\n\tUsage:\n\t$0 action container/s\n\n\
+	Actions:\n\
+	edit\t\t-\tedit configuration file\n\
+	delete/rn\t-\tremoves configuration file\n\
+	start/up\t-\tbuilds and starts a container\n\
+	restart/reload\t-\trestarts a running containter\n\
+	recreate/rebuild-\trecreates a running container\n\
+	stop\t\t-\tstops a running container\n\
+	remove/down\t-\tstops and deletes a (running) container\n\
+	(un)pause\t-\t(un)pauses a running/paused container\n\
+	push/pull\t-\tpushes/pulls a container image to or from docker hub\n\
+	\n"
+	;;
+
+   *)
+        if [[ "$aLen" -lt 1 ]]; then
+          "$0" --usage
+        else
+          #for (( i=0; i<${aLen};  i++)); do
+	for i in "${name[@]}"; do
+	    docker "$1" "$i"
+          done
+        fi
+        ;;
+esac
