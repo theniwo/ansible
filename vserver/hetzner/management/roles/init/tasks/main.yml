@@ -1,0 +1,31 @@
+---
+# tasks file for init
+  tasks:
+    - name: Create Hetzner Cloud Server
+      community.hetzner.hcloud_server:
+        api_token: "{{ hcloud_api_token }}"
+        name: "{{ server_name }}"
+        server_type: "{{ server_type }}"
+        image: "{{ image }}"
+        location: "{{ location }}"
+        ssh_keys:
+          - "{{ ssh_key_id }}"
+        state: present
+      register: server_info
+
+    - name: Show server info
+      debug:
+        var: server_info
+
+    - name: Wait for the server to be ready
+      wait_for:
+        host: "{{ server_info.server.public_net.ipv4.address }}"
+        port: 22
+        state: started
+        timeout: 300
+
+    - name: Add new server to inventory
+      add_host:
+        name: "{{ server_info.server.name }}"
+        ansible_host: "{{ server_info.server.public_net.ipv4.address }}"
+        ansible_user: "root"

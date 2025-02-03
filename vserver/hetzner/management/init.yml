@@ -1,0 +1,10 @@
+---
+- name: Deploy Hetzner vServer
+  hosts: localhost
+  gather_facts: no
+  vars:
+    server_name: "Test"
+    server_type: "cx22"  # Beispiel: cx11, cx21, cx32, etc.
+    image: "ubuntu-22.04"  # Beispiel: ubuntu-22.04, debian-12, etc.
+    location: "fsn1"  # Beispiel: nbg1, fsn1, etc.
+
