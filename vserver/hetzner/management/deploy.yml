@@ -45,6 +45,12 @@
       ansible.builtin.include_vars:
         file: scripts.yml
 
+    - name: "Set Variables for docker"
+      tags:
+        - docker
+      ansible.builtin.include_vars:
+        file: docker.yml
+
   roles:
     - role: deploy
       tags: deploy
