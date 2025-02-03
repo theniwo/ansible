@@ -1,0 +1,59 @@
+---
+- name: Remove old docker installations ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - docker.io
+    - docker-ce-cli
+    - docker-doc
+    - docker-compose
+    - docker-compose-v2
+    - podman-docker
+    - containerd
+    - runc
+  ignore_errors: true
+  when: ansible_facts['os_family'] in ['Debian']
+
+- name: Remove old docker installations ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - docker
+    - docker-ce-cli
+    - docker-client
+    - docker-client-latest
+    - docker-common
+    - docker-latest
+    - docker-latest-logrotate
+    - docker-logrotate
+    - docker-selinux
+    - docker-engine-selinux
+    - docker-engine
+  ignore_errors: true
+  when: ansible_facts['os_family'] in ['RedHat']
+
+- name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.package:
+    name:
+      - podman
+      - podman-docker
+    state: present
+    update_cache: yes
+  when: ansible_facts['os_family'] in ['Debian', 'RedHat']
+
+- name: Install podman-compose on {{ ansible_distribution }} {{ ansible_distribution_version }} or later
+  ansible.builtin.package:
+    name: podman-compose
+    state: present
+    update_cache: yes
+  when:
+    - ansible_facts['distribution'] == 'Ubuntu'
+    - ansible_facts['distribution_major_version'] is version('24', '>=')
+
+- name: Install podman-compose ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  ansible.builtin.package:
+    name: podman-compose
+    state: present
+  when: ansible_facts['os_family'] in ['RedHat']

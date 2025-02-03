@@ -1,0 +1,33 @@
+---
+- name: Supress emulation notification
+  ansible.builtin.file:
+    path: /etc/containers/nodocker
+    state: touch
+
+- name: Get users with UID > 1000
+  ansible.buildin.command: awk -F: '$3 > 1000 {print $1}' /etc/passwd
+  register: user_list
+
+- name: Store users in a variable
+  set_fact:
+    users_above_1000: "{{ user_list.stdout_lines }}"
+
+- name: Debug output
+  debug:
+    var: users_above_1000
+
+- name: Enable linger for each user
+    ansible.builtin.command:
+      cmd: loginctl enable-linger {{ item }}
+    loop: "{{ user_list.stdout_lines }}"
+    become: true
+    changed_when: false
+    ignore_errors: true
+
+#- name: Enable linger for user ID 1000
+  #ansible.builtin.command:
+    #cmd: loginctl enable-linger 1000
+  #become: true
+  #changed_when: false
+  #ignore_errors: true
+
