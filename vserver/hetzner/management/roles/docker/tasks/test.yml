@@ -1,0 +1,31 @@
+---
+- name: Run hello-world container
+  community.docker.docker_container:
+    name: hello-world-container
+    image: hello-world
+    state: started
+    #auto_remove: true
+  register: hello_world_result
+
+- name: Print hello-world container logs
+  command: docker logs hello-world-container
+  register: hello_world_logs
+  ignore_errors: true
+
+- name: Display container logs
+  debug:
+    msg: "{{ hello_world_logs.stdout_lines }}"
+
+- name: Remove hello-world container
+  community.docker.docker_container:
+    name: hello-world-container
+    state: absent
+    force_kill: true
+
+- name: Remove hello-world image
+  community.docker.docker_image:
+    name: hello-world
+    state: absent
+    force_absent: true
+
+

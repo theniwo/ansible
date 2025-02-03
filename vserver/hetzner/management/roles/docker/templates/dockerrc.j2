@@ -1,4 +1,4 @@
-export d_docker_cont="{{ docker_dir }}"
+export d_docker_cont="{{ docker_docker_dir }}"
 export d_docker_comp="{{ docker_compose_dir }}"
 {% raw %}
 alias dockerps='while true; do clear && nice docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | (read -r; printf "%s\n" "$REPLY"; sort -k 1 ) | cut -c-$(tput cols) && sleep 2; done'

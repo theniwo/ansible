@@ -1,0 +1,96 @@
+---
+- name: Gather system facts including bios
+  setup:
+    gather_subset:
+      - hardware
+
+# use on stupid vservers like 1blue
+- name: Copy deamon.json
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+  when: ansible_facts['ansible_system_vendor'] is defined and ansible_facts['ansible_system_vendor'] in ['1Blu']
+
+- name: Create directories for docker files
+  tags:
+    - scripts
+  ansible.builtin.file:
+    path: "{{ docker_docker_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+    recurse: yes
+
+- name: Create directories for docker-compose files
+  tags:
+    - scripts
+  ansible.builtin.file:
+    path: "{{ docker_compose_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+    recurse: yes
+
+- name: Copy healthcheck_docker
+  tags:
+    - scripts
+  ansible.builtin.copy:
+    src: ../files/healthcheck_docker
+    dest: "{{ bin_path }}/healthcheck_docker"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create Cronjob
+  tags:
+    - cron
+  ansible.builtin.cron:
+    name: "healthcheck_docker"
+    minute: "*/30"
+    hour: "8-21"
+    job: "{{ bin_path }}/healthcheck_docker >/dev/null"
+
+- name: Copy cont command
+  tags:
+    - scripts
+  ansible.builtin.copy:
+    src: ../files/cont
+    dest: "{{ bin_path }}/cont"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Copy comp command
+  tags:
+    - scripts
+  ansible.builtin.copy:
+    src: ../files/comp
+    dest: "{{ bin_path }}/comp"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Copy dockerrc
+  tags:
+    - scripts
+  ansible.builtin.template:
+    src: dockerrc.j2
+    dest: $HOME/.dockerrc
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Insert source command to .bashrc
+  tags:
+    - scripts
+  ansible.builtin.blockinfile:
+    path: $HOME/.bashrc
+    block: |
+      if [ -f $HOME/.dockerrc ]; then
+        . $HOME/.dockerrc
+      fi

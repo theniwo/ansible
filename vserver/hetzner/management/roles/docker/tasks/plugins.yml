@@ -1,0 +1,39 @@
+---
+- name: Create {{ docker_plugin_rclone_config_dir }}
+  tags:
+    - rclone
+  ansible.builtin.file:
+    path: "{{ docker_plugin_rclone_config_dir }}"
+    state: directory
+    mode: '0755'
+    recurse: true
+
+- name: Create {{ docker_plugin_rclone_cache_dir }}
+  tags:
+    - rclone
+  ansible.builtin.file:
+    path: "{{ docker_plugin_rclone_cache_dir }}"
+    state: directory
+    mode: '0755'
+    recurse: true
+
+- name: Install latest docker plugins
+  tags:
+    - rclone
+  community.docker.docker_plugin:
+    plugin_name: "{{ item.name }}"
+    state: "{{ item.state }}"
+  loop: "{{ docker_plugins }}"
+  register: plugin_results
+  ignore_errors: true
+
+- name: Create a symbolic link for docker-plugin rclone
+  tags:
+    - rclone
+  ansible.builtin.file:
+    src: /etc/rclone.conf
+    dest: "{{ docker_plugin_rclone_config_dir }}/rclone.conf"
+    owner: root
+    group: root
+    state: hard
+  ignore_errors: true

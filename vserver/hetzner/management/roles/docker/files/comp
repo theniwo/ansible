@@ -26,10 +26,12 @@ OPTS="--log-level error"
 
 # Docker compose may be not installed, use docker compose plugin then
 if ! docker-compose &>/dev/null; then
-  echo "No docker-compose installed. Using docker compose plugin"
-  docker_compose="$(which docker) $OPTS compose"
+	if [ -z "$NOCOMPOSE" ]; then
+		echo -e "No docker-compose installed. Using docker compose plugin\nSet NOCOMPOSE, to suppress this message."
+	fi
+	docker_compose="$(which docker) $OPTS compose"
 else
-  docker_compose=$(which docker-compose) $OPTS
+  	docker_compose=$(which docker-compose) $OPTS
 fi
 
 # Check if file is found and/or executable. If parameter "edit" then we create a new file. Not doing chmod +x automatically for now.
@@ -107,7 +109,7 @@ case "$parameter" in
 	printf '   Name           Command         State    Ports\n-------------------------------------------------\n'
 	for i in ${name[@]}; do
 	if [[ -f "$dir/$i/docker-compose.yml" ]]; then
-	cd $dir/$i && docker-compose ps | grep -v -e Name -e ^-
+	cd $dir/$i && $docker_compose ps | grep -v -e Name -e ^-
 	  #if docker-compose "$dir/$i" ps | grep '"Paused"'  >/dev/null 2>&1; then
 	  #echo "$i is paused"
 	  #elif docker-compose "$i" ps | grep '"Restarting"'  >/dev/null 2>&1;then
@@ -254,7 +256,7 @@ case "$parameter" in
 	checkstat
 	for i in ${name[@]}; do
 	cd $dir/$i
-	$docker-compose --file $dir/$i/docker-compose.yml unpause
+	$docker_compose --file $dir/$i/docker-compose.yml unpause
 	#if docker inspect "$i" | grep '"Paused": false,'  >/dev/null 2>&1; then
 	  #echo "$i already unpaused"
 	#else

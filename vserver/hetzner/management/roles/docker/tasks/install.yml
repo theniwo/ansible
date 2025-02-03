@@ -1,0 +1,179 @@
+---
+- when: ansible_facts['os_family'] in ['Debian']
+  block:
+    - name: Remove old docker installations ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - docker.io
+        - docker-doc
+        - docker-compose
+        - docker-compose-v2
+        - podman
+        - podman-compose
+        - podman-docker
+        - containerd
+        - runc
+      ignore_errors: true
+
+    - name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      apt:
+        name: "{{ item }}"
+        state: latest
+        update_cache: yes
+      with_items:
+        - ca-certificates
+        - curl
+
+    - name: Add the Docker repository ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      block:
+        - name: Ensure apt keyring directory exists
+          ansible.builtin.file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
+            recurse: true
+        - name: Add Docker's official GPG key ({{ ansible_distribution }} {{ ansible_distribution_version }})
+          ansible.builtin.get_url:
+            url: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+            dest: /etc/apt/keyrings/docker.asc
+        - name: Add the repository to Apt sources ({{ ansible_distribution }} {{ ansible_distribution_version }})
+          ansible.builtin.apt_repository:
+            repo: deb [arch={{ ansible_architecture | regex_replace('x86_64', 'amd64') }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/{{ ansible_system | lower }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
+            filename: docker
+
+    - name: Install docker-ce ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      apt:
+        name: "{{ item }}"
+        state: latest
+        update_cache: true
+      with_items:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+
+
+    # The manual way
+    #- name: Add Docker's official GPG key ({{ ansible_distribution }})
+      #ansible.builtin.shell: install -m 0755 -d /etc/apt/keyrings && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && chmod a+r /etc/apt/keyrings/docker.asc
+
+    #- name: Debug message
+      #ansible.builtin.debug:
+        #msg: "{{ [ansible_architecture] | map('extract', deb_architecture) | first }}"
+      #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+    #- name: Add the repository to Apt sources
+      #ansible.builtin.shell: |
+        #echo  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+    #- name: Copy apt sources file
+      #ansible.builtin.template:
+        #src: docker.list.j2
+        #dest: /etc/apt/sources.list.d/docker.list
+        #owner: root
+        #group: root
+        #mode: '0644'
+      #when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- when: ansible_facts['os_family'] in ['RedHat']
+  block:
+    - name: Remove old docker installations ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - docker
+        - docker-client
+        - docker-client-latest
+        - docker-common
+        - docker-latest
+        - docker-latest-logrotate
+        - docker-logrotate
+        - docker-selinux
+        - docker-engine-selinux
+        - docker-engine
+        - podman
+        - podman-compose
+        - podman-docker
+      ignore_errors: true
+
+    - name: Install docker repository ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      yum_repository:
+        name: docker-ce
+        description: Docker CE Stable - $basearch
+        baseurl: https://download.docker.com/linux/{{ ansible_distribution | lower }}/$releasever/$basearch/stable
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+
+    # The manual way
+    #- name: Check if dnf5 command exists
+      #command: which dnf5
+      #register: dnf5_check
+      #ignore_errors: true
+    #- name: Install docker repository ({{ ansible_distribution }})
+      #ansible.builtin.command: dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+      #when: dnf5_check.rc != 0
+      #when:
+        #- ansible_distribution == 'Fedora'
+        #- ansible_distribution_major_version <= '40'
+
+    #- name: Install docker repository ({{ ansible_distribution }})
+      #ansible.builtin.command: dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
+      #when: dnf5_check.rc == 0
+      #when:
+        #- ansible_distribution == 'Fedora'
+        #- ansible_distribution_major_version > '40'
+
+    - name: Install docker-ce ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      yum:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+
+    - name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      yum:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - dnf-plugins-core
+
+- name: (Re)start docker
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+
+# Mounts if present
+#- name: Mount docker-volumes
+#  tags:
+#    - deploy
+#    - mounts
+#  ansible.posix.mount:
+#    src: '/dev/mapper/vgdata-docker'
+#    path: '/var/lib/docker/volumes'
+#    opts: defaults
+#    boot: true
+#    state: mounted
+#    fstype: ext4
+
+
+# The manual way
+#- name: Install latest rclone docker plugin
+  #tags:
+    #- rclone
+  #ansible.builtin.shell: |
+    #docker plugin install rclone/docker-volume-rclone:{{ ansible_architecture | regex_replace('x86_64', 'amd64') }} args="-v" --alias rclone --grant-all-permissions
+  #ignore_errors: True
+
+
