@@ -1,5 +1,5 @@
 ---
-- name: Rebuild Docker containers
+- name: Manage Docker containers
   hosts: docker_server
   become: true
   become_user: root
@@ -14,6 +14,10 @@
       ansible.builtin.include_vars:
         file: docker.yml
   roles:
+    - role: docker-stop
+      tags: docker-stop,stop
+    - role: docker-start
+      tags: docker-start,start
     - role: docker-restart
-      tags: docker-restart
+      tags: docker-restart,restart
 
