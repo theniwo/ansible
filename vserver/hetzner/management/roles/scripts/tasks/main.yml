@@ -2,9 +2,9 @@
 - tags:
   - scripts
   block:
-    - name: Ensure the directory {{ backup_path }} exists
+    - name: Ensure the directory {{ backup_path }}/{{ ansible_hostname }} exists
       file:
-        path: "{{ backup_path }}"
+        path: "{{ backup_path }}/{{ ansible_hostname }}"
         state: directory
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
