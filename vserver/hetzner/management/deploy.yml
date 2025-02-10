@@ -67,7 +67,7 @@
     - role: storagebox
       tags: storagebox,rclone
     - role: docker
-      tags: docker,rclone
+      tags: docker
     - role: scripts
       tags: scripts
     - role: unattended-upgrades
