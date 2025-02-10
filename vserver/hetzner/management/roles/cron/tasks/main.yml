@@ -21,7 +21,7 @@
     name: "backup root"
     minute: "0"
     hour: "0"
-    job: 'HOSTNAME=$(hostname) && tar cPzf "{{ backup_path }}{{ ansible_hostname }}/root_$(date +\%y\%m\%d\%H\%M).tar.gz" /root >/dev/null'
+    job: 'HOSTNAME=$(hostname) && tar cPzf "{{ backup_path }}/$(hostname)/root_$(date +\%y\%m\%d\%H\%M).tar.gz" /root >/dev/null'
 
 - name: Create Cronjob backup volumes
   ansible.builtin.cron:
