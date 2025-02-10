@@ -28,8 +28,9 @@ OPTS="--log-level error"
 if ! docker-compose &>/dev/null; then
 	if [ -z "${NOCOMPOSE+x}" ]; then
 		echo -e "No docker-compose installed. Using docker compose plugin\nSet NOCOMPOSE, to suppress this message."
+		docker_compose="$(which docker) $OPTS compose"
 	fi
-	docker_compose="$(which docker) $OPTS compose"
+		docker_compose="$(which docker) $OPTS compose"
 else
   	docker_compose=$(which docker-compose) $OPTS
 fi
