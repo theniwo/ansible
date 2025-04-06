@@ -115,6 +115,15 @@
     state: present
   when: ansible_facts['os_family'] in ['Debian']
 
+- name: Alias df ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - aliases
+    - cfg
+  ansible.builtin.lineinfile:
+    path: /root/.bash_aliases
+    regexp: '^alias df'
+    line: "alias df='df --exclude-type=tmpfs --exclude-type=loop --exclude-type=squashfs --exclude-type=overlay'"
+  when: ansible_facts['os_family'] in ['Debian']
 
 - name: Add crontab function to .bashrc ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
