@@ -165,6 +165,47 @@
   when: ansible_facts['os_family'] in ['RedHat']
 
 # Env
+
+- name: HISTCONTROL ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - env
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^HISTCONTROL='
+    line: 'HISTCONTROL='
+  #when: ansible_facts['os_family'] in ['Debian']
+
+- name: HISTSIZE ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - env
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^HISTSIZE='
+    line: 'HISTSIZE=9999999999'
+  #when: ansible_facts['os_family'] in ['Debian']
+
+- name: HISTFILESIZE ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - env
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^HISTFILESIZE='
+    line: 'HISTFILESIZE=9999999999'
+  #when: ansible_facts['os_family'] in ['Debian']
+
+- name: HISTTIMEFORMAT ({{ ansible_distribution }} {{ ansible_distribution_version }})
+  tags:
+    - cfg
+    - env
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    regexp: '^HISTTIMEFORMAT="%F %T "'
+    line: 'HISTTIMEFORMAT="%F %T "'
+  #when: ansible_facts['os_family'] in ['Debian']
+
 - name: VISUAL vim ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
     - cfg
