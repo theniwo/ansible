@@ -23,6 +23,11 @@
     #- unzip
   #when: ansible_facts['os_family'] in ['Debian']
 
+- name: Check if file exists
+  stat:
+    path: /usr/bin/fusermount3
+  register: file_stat
+
 - name: Create a symbolic link for fuser
   ansible.builtin.file:
     src: /usr/bin/fusermount
@@ -31,7 +36,7 @@
     group: root
     state: link
   ignore_errors: True
-  when: ansible_facts['os_family'] in ['Debian']
+  when: not file_stat.stat.exists and ansible_facts['os_family'] in ['Debian'] and ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_major_version'] <= '20'
 
 - name: Install latest rclone version
   ansible.builtin.shell: |
