@@ -253,13 +253,16 @@
     group: "{{ effective_target_user_info.gid | default(target_username) }}"
     mode: '0644' 
     block: |
-      # List of plugins managed by TPM (see defaults/main.yml for list)
+      # All plugins managed by TPM
       {% for plugin in plugin_list %}
       set -g @plugin '{{ plugin }}'
       {% endfor %}
-      # Specific plugin configurations
+
+      # Specific plugin configurations (not part of the plugin_list itself)
       set -g @continuum-restore 'on' # Automatic restore of sessions on tmux start
+
       # Keep this line at the very bottom of tmux.conf
+      # This line triggers TPM to install and manage plugins on tmux start.
       run-shell '/usr/share/tmux-plugin-manager/tpm'
     marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX PLUGINS"
     insertafter: EOF # Ensures the block is added at the end of the file
@@ -280,13 +283,16 @@
     group: "{{ effective_target_user_info.gid | default(target_username) }}"
     mode: '0644' 
     block: |
-      # List of plugins managed by TPM (see defaults/main.yml for list)
+      # All plugins managed by TPM
       {% for plugin in plugin_list %}
       set -g @plugin '{{ plugin }}'
       {% endfor %}
-      # Specific plugin configurations
+
+      # Specific plugin configurations (not part of the plugin_list itself)
       set -g @continuum-restore 'on' # Automatic restore of sessions on tmux start
+
       # Keep this line at the very bottom of tmux.conf
+      # This line triggers TPM to install and manage plugins on tmux start.
       run-shell '~/.tmux/plugins/tpm/tpm'
     marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX PLUGINS"
     insertafter: EOF # Ensures the block is added at the end of the file
