@@ -238,14 +238,13 @@
     path: /root/.config/byobu/.tmux.conf
     regexp: '^bind r source-file ~/.config/byobu/.tmux.conf \; display "Config Reloaded!" '
     line: '"bind r source-file ~/.config/byobu/.tmux.conf \; display "Config Reloaded!" '
-    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX KEYBINDNGS"
 
 - name: Configure Byobu/tmux with TPM plugins for the user
   tags:
     - byobu
     - tmux
   ansible.builtin.blockinfile:
-    path: "{{ ansible_facts.user_home }}/.config/byobu/.tmux.conf"
+    path: "{{ effective_target_user_info.home }}/.config/byobu/.tmux.conf"
     create: yes
     # Use the UID/GID obtained from effective_target_user_info.
     # If for some reason uid/gid are missing (unlikely but possible),
