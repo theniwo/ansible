@@ -278,6 +278,7 @@
 
       # Specific plugin configurations (not part of the plugin_list itself)
       set -g @continuum-restore 'on' # Automatic restore of sessions on tmux start
+      set -g @continuum-save-interval '{{ continuum-save-interval }}' # Save every x minutes
 
       # Keep this line at the very bottom of tmux.conf
       # This line triggers TPM to install and manage plugins on tmux start.

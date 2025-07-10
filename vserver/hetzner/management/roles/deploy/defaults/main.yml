@@ -4,6 +4,7 @@ vars:
 # If target_username is not provided, default to the user Ansible connects as
 target_username: "{{ ansible_user_id }}"
 target_username_effective: "{{ target_username | default(ansible_user_id) }}"
+continuum-save-interval: 5
 plugin_list:
   - 'tmux-plugins/tpm'
   - 'tmux-plugins/tmux-sensible'
