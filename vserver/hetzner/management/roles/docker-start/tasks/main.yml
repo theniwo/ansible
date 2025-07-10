@@ -1,0 +1,21 @@
+---
+# tasks file for docker-up
+- name: Start Docker containers
+  ansible.builtin.shell: "{{ docker_docker_dir }}/{{ item }}"
+  loop: "{{ docker_docker_containers }}"
+  register: docker_results
+
+- name: Start Docker Compose stacks
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_dir }}/{{ item }}"
+    state: present
+  loop: "{{ docker_compose_containers }}"
+  register: compose_results
+
+- name: Manage Docker plugins
+  community.docker.docker_plugin:
+    plugin_name: "{{ item.name }}"
+    state: "{{ item.state }}"
+  loop: "{{ docker_plugins }}"
+  register: plugin_results
+

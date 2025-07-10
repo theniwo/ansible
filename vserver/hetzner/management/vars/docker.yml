@@ -9,6 +9,7 @@ docker_docker_containers:
   - "watchtower"
 docker_compose_containers:
   - "audiobookshelf"
+  - "etherpad"
   - "baikal"
   - "joplin"
   - "nextcloud"
@@ -20,7 +21,7 @@ docker_compose_containers:
 # Plugins
 docker_plugin_state_file: "/var/lib/docker-plugins/rclone/cache/docker-plugin.state"
 docker_plugins:
-  - name: "rclone:latest"
+  - name: "rclone/docker-volume-rclone:amd64"
     state: "enable"
 
 # Volumes

@@ -1,0 +1,80 @@
+---
+# tasks file for docker-down
+- name: Get all Docker volumes using CLI
+  ansible.builtin.command:
+    cmd: docker volume ls --format '{{ "{{" }}.Driver{{ "}}" }} {{ "{{" }}.Name{{ "}}" }}'
+  register: docker_volumes_raw
+  changed_when: false
+
+#- name: Show extracted Rclone volumes (optional)
+  #ansible.builtin.debug:
+    #var: docker_volumes_raw
+
+- name: Convert volume list to array
+  ansible.builtin.set_fact:
+    docker_volumes: "{{ docker_volumes_raw.stdout_lines }}"
+
+- name: Extract only Rclone volumes
+  ansible.builtin.set_fact:
+    rclone_volumes: "{{ docker_volumes | select('search', '^rclone:') | map('split', ' ') | map('last') | list }}"
+
+- name: Show extracted Rclone volumes (optional)
+  ansible.builtin.debug:
+    var: rclone_volumes
+
+- name: Get all running Docker containers using CLI
+  ansible.builtin.command:
+    cmd: docker ps --format '{{ "{{" }}.Names{{ "}}" }} {{ "{{" }}.Labels{{ "}}" }}'
+  register: docker_containers_raw
+  changed_when: false
+
+#- name: Show extracted containers (optional)
+  #ansible.builtin.debug:
+    #var: docker_containers_raw
+
+- name: Convert container list to array
+  ansible.builtin.set_fact:
+    docker_containers_array: "{{ docker_containers_raw.stdout_lines }}"
+
+- name: Extract Container names for docker by label
+  ansible.builtin.set_fact:
+    docker_docker_containers: "{{ docker_containers_array | reject('search', 'compose') | map('split', ' ') | map('first') | list }}"
+
+- name: Extract Container names for docker-compose by label
+  ansible.builtin.set_fact:
+    docker_compose_containers: "{{ docker_containers_array | select('search', 'compose') | map('split', ' ') | map('first') | map('split', '-') | map('first') | unique | list }}"
+
+- name: Show extracted Docker containers (optional)
+  ansible.builtin.debug:
+    var: docker_docker_containers
+
+- name: Show extracted Docker-Compose containers (optional)
+  ansible.builtin.debug:
+    var: docker_compose_containers
+
+- name: Stop and remove multiple Docker containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ docker_docker_containers }}"
+  register: docker_results
+
+- name: Stop and remove multiple Docker Compose stacks
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_dir }}/{{ item }}"
+    state: absent
+  loop: "{{ docker_compose_containers }}"
+  register: compose_results
+
+- name: Remove {{ docker_plugin_state_file }}
+  ansible.builtin.file:
+    path: "{{ docker_plugin_state_file }}"
+    state: absent
+
+- name: Remove Docker volumes
+  community.docker.docker_volume:
+    name: "{{ item }}"
+    state: absent
+    timeout: 300
+  loop: "{{ rclone_volumes }}"
+  register: volume_results

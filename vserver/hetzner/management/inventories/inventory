@@ -14,5 +14,6 @@ ansible_python_interpreter=/usr/bin/python3
 
 [keys]
 
+hserver
 [docker_server]
 

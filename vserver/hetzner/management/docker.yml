@@ -7,17 +7,61 @@
     LC_ALL: C
     LANG: C
   pre_tasks:
-    - name: "Set Variables"
+    - name: "Set Variables for docker"
       tags:
-        - docker
-        - docker-restart
+        - start
+        - stop
+        - restart
       ansible.builtin.include_vars:
         file: docker.yml
+
+    - name: Check if tags are specified
+      assert:
+        that:
+          - (ansible_playbook_tags is defined) and (ansible_playbook_tags | length > 0)
+        fail_msg: "Please specify at least one tag of 'start, stop or restart' for the playbook."
+        success_msg: "Tag is set."
+#
+    #- name: Check if tags are specified
+      #assert:
+        #that:
+          #- ansible_playbook_tags | length > 0
+        #fail_msg: "Please specify at least one tag of 'start, stop or restart' for the playbook."
+        #success_msg: "Tags are set."
+
+    #- name: Check if tags are specified
+      #assert:
+        #that:
+          #- (ansible_playbook_tags is defined) and (ansible_playbook_tags | length > 0)
+        #fail_msg: "Please specify at least one tag of 'start, stop or restart' for the playbook."
+        #success_msg: "{{ tag_message }}"
+#
+    #- name: Set tag message based on the number of tags
+      #set_fact:
+        #tag_message: |
+          #{% if ansible_playbook_tags | length == 1 %}
+            #One tag '{{ ansible_playbook_tags[0] }}' is set.
+          #{% else %}
+            #Multiple tags {{ ansible_playbook_tags }} are set.
+          #{% endif %}
+
+    #- name: Display the set tags (if one or more)
+      #debug:
+        #msg: |
+          #{% if ansible_playbook_tags | length == 1 %}
+            #One tag '{{ ansible_playbook_tags[0] }}' is set.
+          #{% else %}
+            #Multiple tags {{ ansible_playbook_tags }} are set.
+          #{% endif %}
+
   roles:
     - role: docker-stop
-      tags: docker-stop,stop
+      tags: stop
+      include_tasks: stop.yml
     - role: docker-start
-      tags: docker-start,start
+      tags: start
+      include_tasks: start.yml
     - role: docker-restart
-      tags: docker-restart,restart
+      tags: restart
+      include_tasks: restart.yml
 

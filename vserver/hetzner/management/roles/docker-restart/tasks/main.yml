@@ -42,7 +42,8 @@
 
 - name: Extract Container names for docker-compose by label
   ansible.builtin.set_fact:
-    docker_compose_containers: "{{ docker_containers_array | select('search', 'compose') | map('split', ' ') | map('first') | map('split', '-') | map('first') | unique | list }}"
+    docker_compose_containers: "{{ docker_containers_array | select('search', 'compose') | map('split', ' ') | map('first') | '-'.join(inventory_hostname.split('-')[:-1]) | map('first') | unique | list }}"
+    #docker_compose_containers: "{{ docker_containers_array | select('search', 'compose') | map('split', ' ') | map('first') | map('split', '-') | map('first') | unique | list }}"
 
 #- name: Get all running Docker containers using CLI by names
   #ansible.builtin.command:
@@ -146,7 +147,7 @@
   #register: docker_results
 
 - name: Start Docker containers
-  ansible.builtin.shell: "{{ docker_dir }}/{{ item }}"
+  ansible.builtin.shell: "{{ docker_docker_dir }}/{{ item }}"
   loop: "{{ docker_docker_containers }}"
   register: docker_results
 
