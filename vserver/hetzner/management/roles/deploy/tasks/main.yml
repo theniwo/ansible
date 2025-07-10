@@ -169,11 +169,11 @@
   tags:
     - byobu
     - tmux
-   ansible.builtin.user:
-     name: "{{ target_username }}"
-   register: effective_target_user_info
-   become: no # This task does not require root privileges to read user info
-   failed_when: not effective_target_user_info.exists # Fail if the user doesn't exist
+  ansible.builtin.user:
+    name: "{{ target_username }}"
+  register: effective_target_user_info
+  become: no # This task does not require root privileges to read user info
+  failed_when: not effective_target_user_info.exists # Fail if the user doesn't exist
 
 - name: Ensure TPM directory exists
   tags:
