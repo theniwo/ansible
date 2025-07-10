@@ -166,6 +166,9 @@
 
 # Tmux
 - name: Get home directory and user info for the connecting user
+  tags:
+    - byobu
+    - tmux
   ansible.builtin.user:
     name: "{{ ansible_user_id }}" # Ermittelt Infos über den Benutzer, mit dem Ansible sich verbindet
   register: current_user_info
