@@ -175,21 +175,6 @@
   become: no # This task does not require root privileges to read user info
   #failed_when: not effective_target_user_info.exists # Fail if the user doesn't exist
 
-- name: Ensure tmux config exists
-  tags:
-    - byobu
-    - tmux
-  ansible.builtin.file:
-    path: "{{ effective_target_user_info.home }}/.config/byobu/.tmux.conf"
-    state: touch
-    mode: '0755'
-    # Use the UID/GID obtained from effective_target_user_info.
-    # If for some reason uid/gid are missing (unlikely but possible),
-    # using the user name directly is a robust fallback for 'owner' and 'group'.
-    owner: "{{ effective_target_user_info.uid | default(target_username) }}"
-    group: "{{ effective_target_user_info.gid | default(target_username) }}"
-  become: yes # Must be executed as root to set ownership correctly
-
 - name: Ensure TPM directory exists
   tags:
     - byobu
