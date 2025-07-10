@@ -267,7 +267,7 @@
     insertafter: EOF # Ensures the block is added at the end of the file
   become: yes # Must be executed as root to set ownership correctly
 
-- name: Run TPM to install plugins
+- name: "RHEL: Run TPM to install plugins ({{ ansible_distribution }} {{ ansible_distribution_version }})"
   tags:
     - byobu
     - tmux
@@ -281,6 +281,7 @@
   # needs to start a new Byobu/tmux session, or the tmux.conf needs to be
   # explicitly sourced (e.g., 'tmux source-file ~/.config/byobu/.tmux.conf').
   # The 'run-shell' line in the config handles this on the first session start.
+  when: ansible_facts['os_family'] in ['RedHat']
 
 # Env
 
