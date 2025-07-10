@@ -164,6 +164,114 @@
     line: "alias df='df --exclude-type=tmpfs --exclude-type=loop --exclude-type=squashfs --exclude-type=overlay'"
   when: ansible_facts['os_family'] in ['RedHat']
 
+# Tmux
+- name: Get home directory and user info for the connecting user
+  ansible.builtin.user:
+    name: "{{ ansible_user_id }}" # Ermittelt Infos über den Benutzer, mit dem Ansible sich verbindet
+  register: current_user_info
+  become: no # Dieser Task läuft als der verbundene Benutzer selbst, nicht als Root
+
+- name: Ensure TPM directory exists
+  tags:
+    - byobu
+    - tmux
+  ansible.builtin.file:
+    path: "{{ current_user_info.home }}/.tmux/plugins"
+    state: directory
+    mode: '0755'
+    owner: "{{ current_user_info.uid }}"
+    group: "{{ current_user_info.gid }}"
+
+- name: "DEB: Ensure byobu, tmux, git, and tmux-plugin-manager are installed on Debian based systems ({{ ansible_distribution }} {{ ansible_distribution_version }})"
+  tags:
+    - byobu
+    - tmux
+  ansible.builtin.apt:
+    name:
+      - byobu
+      - tmux
+      - git
+      - tmux-plugin-manager
+    state: present
+    update_cache: yes
+  when: ansible_facts['os_family'] in ['Debian']
+
+# RHEL
+- name: "RHEL: Ensure byobu, tmux and git are installed on RHEL based systems ({{ ansible_distribution }} {{ ansible_distribution_version }})"
+  tags:
+    - byobu
+    - tmux
+  ansible.builtin.dnf: # or 'dnf' for newer RHEL/CentOS/Rocky
+    name:
+      - tmux
+      - git
+    state: present
+    update_cache: yes
+  when: ansible_facts['os_family'] in ['RedHat']
+
+
+- name: "RHEL: Clone tmux-plugin-manager if it does not exist ({{ ansible_distribution }} {{ ansible_distribution_version }})"
+  tags:
+    - byobu
+    - tmux
+  ansible.builtin.git:
+    repo: 'https://github.com/tmux-plugins/tpm'
+    dest: "{{ current_user_info.home }}/.tmux/plugins/tpm"
+    version: master # Or a specific tag/commit if preferred
+    update: no # Only clone if it doesn't exist, don't update on every run
+  become_user: "{{ current_user_info.id }}" # Clone as the target user
+  when: ansible_facts['os_family'] in ['RedHat']
+
+- name: Byobu/Tmux config
+  tags:
+    - byobu
+    - tmux
+  ansible.builtin.lineinfile:
+    path: /root/.config/byobu/.tmux.conf
+    regexp: '^bind r source-file ~/.config/byobu/.tmux.conf \; display "Config Reloaded!" '
+    line: '"bind r source-file ~/.config/byobu/.tmux.conf \; display "Config Reloaded!" '
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX KEYBINDNGS"
+
+- name: Configure Byobu/tmux with TPM plugins for the user
+  tags:
+    - byobu
+    - tmux
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_facts.user_home }}/.config/byobu/.tmux.conf"
+    create: yes
+    owner: "{{ ansible_facts.user_uid }}" 
+    group: "{{ ansible_facts.user_gid }}" 
+    mode: '0644' 
+    block: |
+      # List of plugins
+      set -g @plugin 'tmux-plugins/tpm'
+      set -g @plugin 'tmux-plugins/tmux-sensible' # Optional: a set of sensible tmux options
+
+      # User-defined plugins for session management
+      set -g @plugin 'tmux-plugins/tmux-resurrect'
+      set -g @plugin 'tmux-plugins/tmux-continuum'
+      set -g @continuum-restore 'on' # Automatic restore of sessions on tmux start
+
+      # Keep this line at the very bottom of tmux.conf
+      run-shell '~/.tmux/plugins/tpm/tpm'
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX PLUGINS"
+    insertafter: EOF # Ensures the block is added at the end of the file
+
+- name: Run TPM to install plugins
+  tags:
+    - byobu
+    - tmux
+  ansible.builtin.command: "{{ current_user_info.home }}/.tmux/plugins/tpm/tpm"
+  args:
+    chdir: "{{ current_user_info.home }}" # Ensure command runs from user's home directory
+  become_user: "{{ current_user_info.id }}" # Run as the current user, not root
+  register: tpm_install_output
+  changed_when: "'Successfully installed' in tpm_install_output.stdout or 'cloned' in tpm_install_output.stdout"
+  # Note: For this task to automatically trigger plugin installation, the user
+  # needs to start a new Byobu/tmux session, or the tmux.conf needs to be
+  # explicitly sourced (e.g., 'tmux source-file ~/.config/byobu/.tmux.conf').
+  # The 'run-shell' line in the config handles this on the first session start.
+
 # Env
 
 - name: HISTCONTROL ({{ ansible_distribution }} {{ ansible_distribution_version }})

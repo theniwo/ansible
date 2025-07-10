@@ -8,6 +8,7 @@ pkgs_deb:
   - moreutils
   - ncdu
   - "{{ sqlite_name }}"
+  - tmux-plugin-manager
   - unzip
   - vim
 pkgs_rpm:
