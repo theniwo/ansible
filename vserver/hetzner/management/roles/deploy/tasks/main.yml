@@ -237,9 +237,9 @@
   ansible.builtin.lineinfile:
     path: /root/.config/byobu/.tmux.conf
     regexp: '^bind r source-file ~/.config/byobu/.tmux.conf \; display "Config Reloaded!" '
-    line: '"bind r source-file ~/.config/byobu/.tmux.conf \; display "Config Reloaded!" '
+    line: 'bind r source-file ~/.config/byobu/.tmux.conf \; display "Config Reloaded!" '
 
-- name: Configure Byobu/tmux with TPM plugins for the user
+- name: "DEB: Configure Byobu/tmux with TPM plugins for the user ({{ ansible_distribution }} {{ ansible_distribution_version }})"
   tags:
     - byobu
     - tmux
@@ -257,10 +257,34 @@
       {% for plugin in plugin_list %}
       set -g @plugin '{{ plugin }}'
       {% endfor %}
-
       # Specific plugin configurations
       set -g @continuum-restore 'on' # Automatic restore of sessions on tmux start
+      # Keep this line at the very bottom of tmux.conf
+      run-shell '/usr/share/tmux-plugin-manager/tpm'
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX PLUGINS"
+    insertafter: EOF # Ensures the block is added at the end of the file
+  become: yes # Must be executed as root to set ownership correctly
 
+- name: "RHEL: Configure Byobu/tmux with TPM plugins for the user ({{ ansible_distribution }} {{ ansible_distribution_version }})"
+  tags:
+    - byobu
+    - tmux
+  ansible.builtin.blockinfile:
+    path: "{{ effective_target_user_info.home }}/.config/byobu/.tmux.conf"
+    create: yes
+    # Use the UID/GID obtained from effective_target_user_info.
+    # If for some reason uid/gid are missing (unlikely but possible),
+    # using the user name directly is a robust fallback for 'owner' and 'group'.
+    owner: "{{ effective_target_user_info.uid | default(target_username) }}"
+    group: "{{ effective_target_user_info.gid | default(target_username) }}"
+    mode: '0644' 
+    block: |
+      # List of plugins managed by TPM (see defaults/main.yml for list)
+      {% for plugin in plugin_list %}
+      set -g @plugin '{{ plugin }}'
+      {% endfor %}
+      # Specific plugin configurations
+      set -g @continuum-restore 'on' # Automatic restore of sessions on tmux start
       # Keep this line at the very bottom of tmux.conf
       run-shell '~/.tmux/plugins/tpm/tpm'
     marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX PLUGINS"
