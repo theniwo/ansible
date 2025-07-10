@@ -252,7 +252,6 @@
     # using the user name directly is a robust fallback for 'owner' and 'group'.
     owner: "{{ effective_target_user_info.uid | default(target_username) }}"
     group: "{{ effective_target_user_info.gid | default(target_username) }}"
-  become: yes # Must be executed as root to set ownership correctly
     mode: '0644' 
     block: |
       # List of plugins managed by TPM (see defaults/main.yml for list)
@@ -267,6 +266,7 @@
       run-shell '~/.tmux/plugins/tpm/tpm'
     marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX PLUGINS"
     insertafter: EOF # Ensures the block is added at the end of the file
+  become: yes # Must be executed as root to set ownership correctly
 
 - name: Run TPM to install plugins
   tags:
