@@ -1,0 +1,9 @@
+---
+vars:
+# defaults file for your_role
+# If target_username is not provided, default to the user Ansible connects as
+target_username: "{{ ansible_user_id }}"
+target_username_effective: "{{ target_username | default(ansible_user_id) }}"
+plugin_list:
+  - 'tmux-plugins/tmux-resurrect'
+  - 'tmux-plugins/tmux-continuum'

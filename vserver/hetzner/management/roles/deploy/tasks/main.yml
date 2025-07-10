@@ -1,13 +1,4 @@
 ---
-vars:
-  # Optional: Definiere hier den Benutzernamen, für den die Tmux-Konfiguration eingerichtet werden soll.
-  # Wenn diese Variable NICHT gesetzt ist, wird standardmäßig der Benutzer verwendet,
-  # mit dem sich Ansible verbindet (z.B. 'root' oder dein normaler SSH-Benutzer).
-  # Beispiel: target_username: "niwo"
-  # Beispiel für Root-Konfiguration: target_username: "root"
-  # Wenn nicht gesetzt, wird ansible_user_id verwendet.
-  target_username_effective: "{{ target_username | default(ansible_user_id) }}"
-
 # PKGS
 - name: Install requirements ({{ ansible_distribution }} {{ ansible_distribution_version }})
   tags:
@@ -174,12 +165,12 @@ vars:
   when: ansible_facts['os_family'] in ['RedHat']
 
 # Tmux
-- name: Get user info for the effective target user ({{ target_username_effective }})
+- name: Get user info for the effective target user ({{ target_username }})
   tags:
     - byobu
     - tmux
    ansible.builtin.user:
-     name: "{{ target_username_effective }}"
+     name: "{{ target_username }}"
    register: effective_target_user_info
    become: no # This task does not require root privileges to read user info
    failed_when: not effective_target_user_info.exists # Fail if the user doesn't exist
@@ -232,7 +223,7 @@ vars:
     dest: "{{ effective_target_user_info.home }}/.tmux/plugins/tpm"
     version: master # Or a specific tag/commit if preferred
     update: no # Only clone if it doesn't exist, don't update on every run
-  become_user: "{{ effective_target_user_info.id }}" # Clone as the target user
+  become_user: "{{ target_username }}" # Clone as the target user
   when: ansible_facts['os_family'] in ['RedHat']
 
 - name: Byobu/Tmux config
@@ -256,13 +247,12 @@ vars:
     group: "{{ effective_target_user_info.gid }}" 
     mode: '0644' 
     block: |
-      # List of plugins
-      set -g @plugin 'tmux-plugins/tpm'
-      set -g @plugin 'tmux-plugins/tmux-sensible' # Optional: a set of sensible tmux options
+      # List of plugins managed by TPM (see defaults/main.yml for list)
+      {% for plugin in plugin_list %}
+      set -g @plugin '{{ plugin }}'
+      {% endfor %}
 
-      # User-defined plugins for session management
-      set -g @plugin 'tmux-plugins/tmux-resurrect'
-      set -g @plugin 'tmux-plugins/tmux-continuum'
+      # Specific plugin configurations
       set -g @continuum-restore 'on' # Automatic restore of sessions on tmux start
 
       # Keep this line at the very bottom of tmux.conf
@@ -277,7 +267,7 @@ vars:
   ansible.builtin.command: "{{ effective_target_user_info.home }}/.tmux/plugins/tpm/tpm"
   args:
     chdir: "{{ effective_target_user_info.home }}" # Ensure command runs from user's home directory
-  become_user: "{{ effective_target_user_info.id }}" # Run as the current user, not root
+  become_user: "{{ target_username }}" # Run as the current user, not root
   register: tpm_install_output
   changed_when: "'Successfully installed' in tpm_install_output.stdout or 'cloned' in tpm_install_output.stdout"
   # Note: For this task to automatically trigger plugin installation, the user
