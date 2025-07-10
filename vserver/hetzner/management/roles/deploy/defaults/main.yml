@@ -5,8 +5,8 @@ vars:
 target_username: "{{ ansible_user_id }}"
 target_username_effective: "{{ target_username | default(ansible_user_id) }}"
 plugin_list:
-  - 'tmux-plugins/tpm'        # Tmux Plugin Manager itself (will be cloned)
-  - 'tmux-plugins/tmux-sensible' # A set of sensible tmux options
+  - 'tmux-plugins/tpm'
+  - 'tmux-plugins/tmux-sensible'
   - 'tmux-plugins/tmux-resurrect'
   - 'tmux-plugins/tmux-continuum'
 
