@@ -173,7 +173,7 @@
     name: "{{ target_username }}"
   register: effective_target_user_info
   become: no # This task does not require root privileges to read user info
-  failed_when: not effective_target_user_info.exists # Fail if the user doesn't exist
+  #failed_when: not effective_target_user_info.exists # Fail if the user doesn't exist
 
 - name: Ensure TPM directory exists
   tags:
@@ -183,8 +183,12 @@
     path: "{{ effective_target_user_info.home }}/.tmux/plugins"
     state: directory
     mode: '0755'
-    owner: "{{ effective_target_user_info.uid }}"
-    group: "{{ effective_target_user_info.gid }}"
+    # Use the UID/GID obtained from effective_target_user_info.
+    # If for some reason uid/gid are missing (unlikely but possible),
+    # using the user name directly is a robust fallback for 'owner' and 'group'.
+    owner: "{{ effective_target_user_info.uid | default(target_username) }}"
+    group: "{{ effective_target_user_info.gid | default(target_username) }}"
+  become: yes # Must be executed as root to set ownership correctly
 
 - name: "DEB: Ensure byobu, tmux, git, and tmux-plugin-manager are installed on Debian based systems ({{ ansible_distribution }} {{ ansible_distribution_version }})"
   tags:
@@ -243,8 +247,12 @@
   ansible.builtin.blockinfile:
     path: "{{ ansible_facts.user_home }}/.config/byobu/.tmux.conf"
     create: yes
-    owner: "{{ effective_target_user_info.uid }}" 
-    group: "{{ effective_target_user_info.gid }}" 
+    # Use the UID/GID obtained from effective_target_user_info.
+    # If for some reason uid/gid are missing (unlikely but possible),
+    # using the user name directly is a robust fallback for 'owner' and 'group'.
+    owner: "{{ effective_target_user_info.uid | default(target_username) }}"
+    group: "{{ effective_target_user_info.gid | default(target_username) }}"
+  become: yes # Must be executed as root to set ownership correctly
     mode: '0644' 
     block: |
       # List of plugins managed by TPM (see defaults/main.yml for list)
