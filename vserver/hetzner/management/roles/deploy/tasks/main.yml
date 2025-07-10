@@ -264,6 +264,7 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX PLUGINS"
     insertafter: EOF # Ensures the block is added at the end of the file
   become: yes # Must be executed as root to set ownership correctly
+  when: ansible_facts['os_family'] in ['Debian']
 
 - name: "RHEL: Configure Byobu/tmux with TPM plugins for the user ({{ ansible_distribution }} {{ ansible_distribution_version }})"
   tags:
@@ -290,6 +291,7 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TMUX PLUGINS"
     insertafter: EOF # Ensures the block is added at the end of the file
   become: yes # Must be executed as root to set ownership correctly
+  when: ansible_facts['os_family'] in ['RedHat']
 
 - name: "RHEL: Run TPM to install plugins ({{ ansible_distribution }} {{ ansible_distribution_version }})"
   tags:
