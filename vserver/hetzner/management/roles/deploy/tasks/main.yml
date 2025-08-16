@@ -230,21 +230,41 @@
   become_user: "{{ target_username }}" # Clone as the target user
   when: ansible_facts['os_family'] in ['RedHat']
 
-- name: Byobu/Tmux config
+- name: "DEB: Byobu/Tmux config ({{ ansible_distribution }} {{ ansible_distribution_version }})"
   tags:
     - byobu
     - tmux
   ansible.builtin.lineinfile:
-    path: /root/.config/byobu/.tmux.conf
+    path: >-
+      {% set ubuntu_major_version = ansible_facts['distribution_version'].split('.')[0] %}
+      {% if ubuntu_major_version == '22' %}
+      {{ effective_target_user_info.home }}/.byobu/.tmux.conf
+      {% elif ubuntu_major_version == '24' %}
+      {{ effective_target_user_info.home }}/.config/byobu/.tmux.conf
+      {% else %}
+      {{ effective_target_user_info.home }}/.byobu/.tmux.conf # Fallback path for other versions
+      {% endif %}
+    create: yes
     regexp: '^bind r source-file ~/.config/byobu/.tmux.conf \; display "Config Reloaded!" '
     line: 'bind r source-file ~/.config/byobu/.tmux.conf \; display "Config Reloaded!" '
+  become: yes # Must be executed as root to set ownership correctly
+  when: ansible_facts['os_family'] in ['Debian']
+
 
 - name: "DEB: Configure Byobu/tmux with TPM plugins for the user ({{ ansible_distribution }} {{ ansible_distribution_version }})"
   tags:
     - byobu
     - tmux
   ansible.builtin.blockinfile:
-    path: "{{ effective_target_user_info.home }}/.config/byobu/.tmux.conf"
+    path: >-
+      {% set ubuntu_major_version = ansible_facts['distribution_version'].split('.')[0] %}
+      {% if ubuntu_major_version == '22' %}
+      {{ effective_target_user_info.home }}/.byobu/.tmux.conf
+      {% elif ubuntu_major_version == '24' %}
+      {{ effective_target_user_info.home }}/.config/byobu/.tmux.conf
+      {% else %}
+      {{ effective_target_user_info.home }}/.byobu/.tmux.conf # Fallback path for other versions
+      {% endif %}
     create: yes
     # Use the UID/GID obtained from effective_target_user_info.
     # If for some reason uid/gid are missing (unlikely but possible),
