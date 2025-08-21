@@ -10,4 +10,4 @@ plugin_list:
   - 'tmux-plugins/tmux-sensible'
   - 'tmux-plugins/tmux-resurrect'
   - 'tmux-plugins/tmux-continuum'
-
+timezone: "Europe/Berlin"
