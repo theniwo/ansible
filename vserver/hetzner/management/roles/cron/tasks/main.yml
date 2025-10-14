@@ -23,6 +23,13 @@
     hour: "0"
     job: 'HOSTNAME=$(hostname) && tar cPzf "{{ backup_path }}/$(hostname)/root_$(date +\%y\%m\%d\%H\%M).tar.gz" /root >/dev/null'
 
+- name: Create Cronjob Healthcheck System
+  ansible.builtin.cron:
+    name: "Healthcheck System"
+    minute: "*"
+    hour: "*"
+    job: 'curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/739f47dd-e8a5-48af-84f1-e09d6c46951a &>/dev/null'
+
 - name: Create Cronjob backup volumes
   ansible.builtin.cron:
     name: "backup volumes"
