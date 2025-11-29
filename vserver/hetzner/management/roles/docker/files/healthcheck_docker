@@ -5,25 +5,32 @@ LIST="
 "
 RUNNING=$(docker ps --format "{{.Names}}" | sort | grep -v watchtower)
 
-for i in $LIST; do
-	docker container exec $i sh 2>/dev/null;
-	if [ $? != 0 ] ; then
-		export FAILED="$FAILED $i"
+for CONTAINER_NAME in $LIST; do
+	#docker container exec $i sh 2>/dev/null;
+	IS_RUNNING=$(docker inspect --format='{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null)
+	if [ $? -ne 0 ] || [ "$IS_RUNNING" != "true" ]; then
+		export FAILED="$FAILED $CONTAINER_NAME"
 	fi
 done
-for i in $RUNNING; do
-	docker container exec $i sh 2>/dev/null;
-	if [ $? != 0 ] ; then
-		export FAILED2="$FAILED2 $i"
+for CONTAINER_NAME in $RUNNING; do
+	#docker container exec $i sh 2>/dev/null;
+	HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_NAME" 2>/dev/null)
+	if [ "$HEALTH_STATUS" == "unhealthy" ] ; then
+		export FAILED2="$FAILED2 $CONTAINER_NAME"
 	fi
 done
 
-if [ ${FAILED+x} ]  ; then
+if [[ ${FAILED} ]]  ; then
 	echo "$FAILED down" | mail -s "$HOST Status $(date +%d.%m.%Y) " $HOST@REDACTED
 	echo "$FAILED down"
 fi
 
-if [ ${FAILED2+x} ]  ; then
-	echo "$FAILED2 down" | mail -s "$HOST Status $(date +%d.%m.%Y) " $HOST@REDACTED
-	echo "$FAILED2 down"
+if [ ${FAILED2} ]  ; then
+	echo "$FAILED2 unhealthy" | mail -s "$HOST Status $(date +%d.%m.%Y) " $HOST@REDACTED
+	echo "$FAILED2 unhealthy"
 fi
+
+#if [ ${FAILED2+x} ]  ; then
+	#echo "$FAILED2 down" | mail -s "$HOST Status $(date +%d.%m.%Y) " $HOST@REDACTED
+	#echo "$FAILED2 down"
+#fi
