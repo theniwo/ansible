@@ -16,7 +16,7 @@
 
 - name: Create directories for docker files
   tags:
-    - scripts
+    - docker
   ansible.builtin.file:
     path: "{{ docker_docker_dir }}"
     state: directory
@@ -27,7 +27,7 @@
 
 - name: Create directories for docker-compose files
   tags:
-    - scripts
+    - docker
   ansible.builtin.file:
     path: "{{ docker_compose_dir }}"
     state: directory
@@ -38,7 +38,7 @@
 
 - name: Copy healthcheck_docker
   tags:
-    - scripts
+    - docker
   ansible.builtin.copy:
     src: ../files/healthcheck_docker
     dest: "{{ bin_path }}/healthcheck_docker"
@@ -57,7 +57,7 @@
 
 - name: Copy cont command
   tags:
-    - scripts
+    - docker
   ansible.builtin.copy:
     src: ../files/cont
     dest: "{{ bin_path }}/cont"
@@ -67,7 +67,7 @@
 
 - name: Copy comp command
   tags:
-    - scripts
+    - docker
   ansible.builtin.copy:
     src: ../files/comp
     dest: "{{ bin_path }}/comp"
@@ -77,7 +77,7 @@
 
 - name: Copy dockerrc
   tags:
-    - scripts
+    - docker
   ansible.builtin.template:
     src: dockerrc.j2
     dest: $HOME/.dockerrc
@@ -87,7 +87,7 @@
 
 - name: Insert source command to .bashrc
   tags:
-    - scripts
+    - docker
   ansible.builtin.blockinfile:
     path: $HOME/.bashrc
     block: |
