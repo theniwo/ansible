@@ -1,1 +1,1 @@
-mailto: $WHOAMI.{{ mailAddress }}
+mailto: {{ mailAddress }}
