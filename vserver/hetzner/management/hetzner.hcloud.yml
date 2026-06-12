@@ -1,0 +1,3 @@
+plugin: hetzner.hcloud.hcloud
+groups:
+  k8s_nodes: "labels.firewall == 'k8s'"
