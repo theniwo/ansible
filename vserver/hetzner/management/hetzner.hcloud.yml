@@ -1,3 +1,6 @@
 plugin: hetzner.hcloud.hcloud
-groups:
-  k8s_nodes: "labels.firewall == 'k8s'"
+
+# Gruppiert die Server automatisch anhand des Labels aus Terraform
+keyed_groups:
+  - key: labels.ansible_group
+    separator: ""
