@@ -22,12 +22,14 @@ spec:
           - /bin/sh
           - -c
           - |
-            # 1. Konfiguration kopieren, falls leer
-            if [ -z "$(ls -A /target-config)" ]; then
+            # 1. Konfiguration kopieren, wenn der Ordner leer ist oder NUR lost+found enthält
+            if [ ! -d /target-config ] || [ -z "$(ls -A /target-config | grep -v '^lost+found$')" ]; then
+              echo "Kopiere NGINX Configs..."
               cp -a /etc/nginx/. /target-config/;
             fi
-            # 2. Web-Verzeichnis kopieren, falls leer
-            if [ -z "$(ls -A /target-data)" ]; then
+            # 2. Web-Verzeichnis kopieren, wenn der Ordner leer ist oder NUR lost+found enthält
+            if [ ! -d /target-data ] || [ -z "$(ls -A /target-data | grep -v '^lost+found$')" ]; then
+              echo "Kopiere Web-Daten..."
               cp -a /usr/share/nginx/html/. /target-data/;
             fi
         volumeMounts:
