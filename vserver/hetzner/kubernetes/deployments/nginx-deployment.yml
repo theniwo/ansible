@@ -36,12 +36,37 @@ spec:
         ports:
         - containerPort: 80
         volumeMounts:
+        - name: nginx-config-volume
+          mountPath: "/etc/nginx"
         - name: nginx-data-volume
           mountPath: "/var/www/html"
+        - name: nginx-log-volume
+          mountPath: "/var/log/nginx"
       volumes:
+      - name: nginx-config-volume
+        persistentVolumeClaim:
+          claimName: nginx-config-pvc 
       - name: nginx-data-volume
         persistentVolumeClaim:
-          claimName: nginx-data-pvc # Verknüpfung mit dem PVC von oben
+          claimName: nginx-data-pvc 
+      - name: nginx-log-volume
+        persistentVolumeClaim:
+          claimName: nginx-log-pvc 
+
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-config-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany 
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 50Mi 
 
 ---
 apiVersion: v1
@@ -51,8 +76,22 @@ metadata:
   namespace: default
 spec:
   accessModes:
-    - ReadWriteMany # Erlaubt gleichzeitigen Zugriff von mehreren Nodes/Pods
-  storageClassName: longhorn # Sagt K8s, dass Longhorn den Speicher bereitstellen soll
+    - ReadWriteMany 
+  storageClassName: longhorn
   resources:
     requests:
-      storage: 1Gi # Die gewünschte Größe (kannst du anpassen)
+      storage: 1Gi 
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-log-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany 
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi 
