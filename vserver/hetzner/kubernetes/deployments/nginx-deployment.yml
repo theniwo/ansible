@@ -64,7 +64,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: nginx-config-pvc
 spec:
-  accessModes: [- ReadWriteMany]
+  accessModes: 
+    - ReadWriteMany
   storageClassName: longhorn
   resources:
     requests:
@@ -75,7 +76,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: nginx-data-pvc
 spec:
-  accessModes: [- ReadWriteMany]
+  accessModes: 
+    - ReadWriteMany
   storageClassName: longhorn
   resources:
     requests:
@@ -86,7 +88,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: nginx-log-pvc
 spec:
-  accessModes: [- ReadWriteMany]
+  accessModes: 
+    - ReadWriteMany
   storageClassName: longhorn
   resources:
     requests:
