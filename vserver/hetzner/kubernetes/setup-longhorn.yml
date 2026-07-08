@@ -35,20 +35,53 @@
 
 # ZWEITER PLAY: Installiert Longhorn – wird NUR auf dem Master ausgeführt
 - name: Installiere Longhorn Speicher-Infrastruktur
-  hosts: kube_master   # Mapped direkt auf deinen k8s-master-1
+  hosts: kube_master   # Mapped auf deinen k8s-master-1
   become: true
   
   tasks:
-    - name: Longhorn Manifest aus dem Internet im Cluster anwenden
-      ansible.builtin.command: kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml
+    - name: Longhorn Manifest temporär herunterladen
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml
+        dest: /tmp/longhorn.raw.yaml
+        mode: '0644'
+
+    - name: Master-Taint Tolerations in das Manifest patchen
+      ansible.builtin.copy:
+        dest: /tmp/longhorn.yaml
+        content: |
+          # Automatisch generiert via Ansible: Globale Tolerations für Control Plane
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: longhorn-default-setting
+            namespace: longhorn-system
+          data:
+            default-setting.yaml: |
+              taint-toleration: node-role.kubernetes.io/control-plane:NoSchedule;key=node-role.kubernetes.io/master:NoSchedule
+          ---
+        # Fügt das originale Manifest an die ConfigMap mit den Einstellungen an
+      # (Damit weiß der Deployer von Sekunde 1 an, dass er den Master betreten darf)
+    
+    - name: Zusammenführen des angepassten Manifests
+      ansible.builtin.shell: cat /tmp/longhorn.raw.yaml >> /tmp/longhorn.yaml
+      changed_when: false
+
+    - name: Altes fehlerhaftes Longhorn-Deployment im Cluster bereinigen
+      ansible.builtin.command: kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml --ignore-not-found=true
+      environment:
+        KUBECONFIG: /root/.kube/config
+      changed_when: false
+
+    - name: Gepatchtes Longhorn Manifest im Cluster anwenden
+      ansible.builtin.command: kubectl apply -f /tmp/longhorn.yaml
       environment:
         KUBECONFIG: /root/.kube/config
       register: longhorn_deploy
       changed_when: "'created' in longhorn_deploy.stdout or 'configured' in longhorn_deploy.stdout"
 
-    - name: Warte kurz, bis der Namespace erstellt wurde
+    - name: Warte kurz, bis der Namespace sich stabilisiert
       ansible.builtin.pause:
-        seconds: 10
+        seconds: 15
 
     - name: Status der Longhorn-Pods anzeigen (Zur Kontrolle)
       ansible.builtin.command: kubectl get pods -n longhorn-system
