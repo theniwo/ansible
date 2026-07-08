@@ -86,12 +86,12 @@
     - name: Kubernetes APT-Schlüssel herunterladen
       get_url:
         url: https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key
-        dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
         mode: '0644'
 
     - name: Kubernetes Repository hinzufügen
       apt_repository:
-        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /"
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /"
         state: present
         filename: kubernetes
 
