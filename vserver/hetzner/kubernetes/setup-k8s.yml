@@ -1,0 +1,175 @@
+---
+- name: Vorbereitung und Installation aller Kubernetes Nodes
+  hosts: kubernetes_nodes
+  become: true
+  tasks:
+    - name: Paketquellen aktualisieren
+      apt:
+        update_cache: yes
+
+    - name: Erforderliche Systempakete installieren (inkl. conntrack)
+      apt:
+        name:
+          - curl
+          - gnupg2
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+          - conntrack
+        state: present
+
+    - name: Swap vorübergehend deaktivieren
+      command: swapoff -a
+      changed_when: false
+
+    - name: Swap dauerhaft in /etc/fstab auskommentieren
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+.*)$'
+        replace: '# \1'
+
+    - name: Kernel-Module für Kubernetes laden
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+
+    - name: Module sofort aktivieren
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: Sysctl-Parameter für Kubernetes Netzwerk setzen
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        sysctl_file: /etc/sysctl.d/k8s.conf
+        reload: yes
+      loop:
+        - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+        - { key: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+        - { key: 'net.ipv4.ip_forward', value: '1' }
+
+    - name: Containerd installieren
+      apt:
+        name: containerd
+        state: present
+
+    - name: Containerd Konfigurationsverzeichnis erstellen
+      file:
+        path: /etc/containerd
+        state: directory
+
+    - name: Containerd Standard-Konfiguration generieren
+      shell: containerd config default > /etc/containerd/config.toml
+      args:
+        creates: /etc/containerd/config.toml
+
+    - name: SystemdCgroup in containerd aktivieren
+      replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+      notify: Restart containerd
+
+    - name: Verzeichnis für APT-Keyrings erstellen
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Kubernetes APT-Schlüssel herunterladen
+      get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        mode: '0644'
+
+    - name: Kubernetes Repository hinzufügen
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /"
+        state: present
+        filename: kubernetes
+
+    - name: Kubernetes-Komponenten installieren
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        update_cache: yes
+
+    - name: Automatische Updates für K8s-Pakete sperren (apt-mark hold)
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+  handlers:
+    - name: Restart containerd
+      service:
+        name: containerd
+        state: restarted
+
+- name: Initialisierung der Control-Plane (Master Node)
+  hosts: kube_master
+  become: true
+  tasks:
+    - name: Prüfen, ob der Cluster bereits initialisiert ist
+      stat:
+        path: /etc/kubernetes/admin.conf
+      register: kubeadm_init_done
+
+    - name: Kubernetes Cluster initialisieren
+      command: kubeadm init --pod-network-cidr=10.244.0.0/16
+      when: not kubeadm_init_done.stat.exists
+      register: kubeadm_output
+
+    - name: .kube Verzeichnis für den Root-Benutzer erstellen
+      file:
+        path: /root/.kube
+        state: directory
+        mode: '0755'
+
+    - name: Kubeconfig für Root kopieren
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        remote_src: yes
+        mode: '0600'
+
+    - name: Flannel Pod-Netzwerk (CNI) installieren
+      command: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+      environment:
+        KUBECONFIG: /root/.kube/config
+      when: not kubeadm_init_done.stat.exists
+
+    - name: Join-Befehl für Worker-Nodes generieren
+      command: kubeadm token create --print-join-command
+      register: join_command_output
+      changed_when: false
+
+    - name: Join-Befehl zwischenspeichern
+      set_fact:
+        join_command: "{{ join_command_output.stdout }}"
+
+- name: Worker-Nodes dem Cluster hinzufügen
+  hosts: kube_workers
+  become: true
+  tasks:
+    - name: Prüfen, ob Worker bereits im Cluster ist
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_joined
+
+    - name: Worker-Node dem Cluster hinzufügen
+      command: "{{ hostvars[groups['kube_master'][0]]['join_command'] }}"
+      when: not kubelet_joined.stat.exists
