@@ -74,9 +74,9 @@
       register: longhorn_deploy
       changed_when: "'created' in longhorn_deploy.stdout or 'configured' in longhorn_deploy.stdout"
 
-    - name: 30 Sekunden Pause für den Container-Infrastruktur-Boot
+    - name: 60 Sekunden Pause für den Container-Infrastruktur-Boot
       ansible.builtin.pause:
-        seconds: 30
+        seconds: 60
 
     - name: Status der Longhorn-Pods abfragen
       ansible.builtin.command: kubectl get pods -n longhorn-system
