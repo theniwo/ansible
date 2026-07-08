@@ -69,11 +69,11 @@
       delay: 2
       changed_when: false
 
-    - name: Master-Taint Tolerations in das Manifest patchen
+    - name: Master-Taint Tolerations und Kubelet-Pfad in das Manifest patchen
       ansible.builtin.copy:
         dest: /tmp/longhorn.yaml
         content: |
-          # Automatisch generiert via Ansible: Globale Tolerations für Control Plane
+          # Automatisch generiert via Ansible: Globale Tolerations & Einstellungen
           apiVersion: v1
           kind: ConfigMap
           metadata:
@@ -81,7 +81,8 @@
             namespace: longhorn-system
           data:
             default-setting.yaml: |
-              taint-toleration: node-role.kubernetes.io/control-plane:NoSchedule;key=node-role.kubernetes.io/master:NoSchedule
+              taint-toleration: node-role.kubernetes.io/control-plane:NoSchedule,node-role.kubernetes.io/master:NoSchedule
+              kubelet-root-dir: /var/lib/kubelet
           ---
 
     - name: Zusammenführen des angepassten Manifests
