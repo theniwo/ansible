@@ -18,6 +18,10 @@
           - conntrack
         state: present
 
+    - name: Ubuntu Firewall (UFW) dauerhaft deaktivieren und stoppen
+      ufw:
+        state: disabled
+
     - name: Swap vorübergehend deaktivieren
       command: swapoff -a
       changed_when: false
