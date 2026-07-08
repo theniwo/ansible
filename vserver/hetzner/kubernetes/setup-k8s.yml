@@ -152,6 +152,23 @@
         remote_src: yes
         mode: '0600'
 
+    - name: Bash-Completion Paket installieren
+      apt:
+        name: bash-completion
+        state: present
+
+    - name: Kubernetes Aliases und Completion in .bash_aliases einfügen
+      blockinfile:
+        path: /root/.bash_aliases
+        create: yes
+        mode: '0644'
+        block: |
+          source /etc/profile.d/bash_completion.sh
+          source <(kubectl completion bash)
+          alias k=kubectl
+          complete -F __start_kubectl k
+        marker: "# {mark} ANSIBLE MANAGED KUBERNETES ALIASES"
+
     - name: Flannel Pod-Netzwerk (CNI) installieren
       command: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
       environment:
