@@ -1,0 +1,90 @@
+---
+- name: Bereite Nodes für Longhorn vor
+  hosts: kubernetes_nodes
+  become: true
+  
+  tasks:
+    - name: Paket-Cache aktualisieren und benötigte Pakete installieren
+      ansible.builtin.apt:
+        name:
+          - open-iscsi
+          - util-linux
+          - cryptsetup
+          - nfs-common
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Sicherstellen, dass der iscsid-Dienst aktiv ist
+      ansible.builtin.systemd:
+        name: iscsid
+        state: started
+        enabled: yes
+
+# ZWEITER PLAY: Installiert Longhorn absolut sauber auf dem frischen Cluster
+- name: Installiere Longhorn Speicher-Infrastruktur
+  hosts: kube_master
+  become: true
+  
+  tasks:
+    - name: Longhorn Manifest im Vorfeld herunterladen
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml
+        dest: /tmp/longhorn.raw.yaml
+        mode: '0644'
+
+    - name: Namespace isoliert erstellen (Verhindert Race Condition)
+      ansible.builtin.command: kubectl create namespace longhorn-system
+      register: ns_create
+      failed_when: "'already exists' not in ns_create.stderr and ns_create.rc != 0"
+      changed_when: "'created' in ns_create.stdout"
+
+    - name: Warten bis Namespace im Cluster vollständig aktiv ist
+      ansible.builtin.command: kubectl get namespace longhorn-system -o jsonpath='{.status.phase}'
+      register: ns_status
+      until: ns_status.stdout == "Active"
+      retries: 12
+      delay: 5
+      changed_when: false
+
+    - name: Globale Einstellungen (Taints mit Komma & Kubelet-Pfad) vorbereiten
+      ansible.builtin.copy:
+        dest: /tmp/longhorn.yaml
+        content: |
+          # Automatisch generiert: Fehlerfreie ConfigMap für den Erststart
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: longhorn-default-setting
+            namespace: longhorn-system
+          data:
+            default-setting.yaml: |
+              taint-toleration: node-role.kubernetes.io/control-plane:NoSchedule,node-role.kubernetes.io/master:NoSchedule
+              kubelet-root-dir: /var/lib/kubelet
+          ---
+
+    - name: Zusammenführen von ConfigMap und originalem Manifest
+      ansible.builtin.shell: cat /tmp/longhorn.raw.yaml >> /tmp/longhorn.yaml
+      changed_when: false
+
+    - name: Gepatchtes Longhorn sauber im Cluster ausrollen
+      ansible.builtin.command: kubectl apply -f /tmp/longhorn.yaml
+      environment:
+        KUBECONFIG: /root/.kube/config
+      register: longhorn_deploy
+      changed_when: "'created' in longhorn_deploy.stdout or 'configured' in longhorn_deploy.stdout"
+
+    - name: 120 Sekunden Pause für den Container-Infrastruktur-Boot
+      ansible.builtin.pause:
+        seconds: 120
+
+    - name: Status der Longhorn-Pods abfragen
+      ansible.builtin.command: kubectl get pods -n longhorn-system
+      environment:
+        KUBECONFIG: /root/.kube/config
+      register: pods_status
+      changed_when: false
+
+    - name: Pod-Status anzeigen
+      ansible.builtin.debug:
+        var: pods_status.stdout_lines
