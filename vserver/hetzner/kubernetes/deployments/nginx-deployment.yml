@@ -16,17 +16,24 @@ spec:
         app: nginx
     spec:
       initContainers:
-      - name: init-populate-config
-        image: nginx:latest 
-        command: ["/bin/sh", "-c", "if [ -z \"$(ls -A /target-config)\" ]; then cp -a /etc/nginx/. /target-config/; fi"]
+      - name: init-populate-volumes
+        image: nginx:latest
+        command:
+          - /bin/sh
+          - -c
+          - |
+            # 1. Konfiguration kopieren, falls leer
+            if [ -z "$(ls -A /target-config)" ]; then
+              cp -a /etc/nginx/. /target-config/;
+            fi
+            # 2. Web-Verzeichnis kopieren, falls leer
+            if [ -z "$(ls -A /target-data)" ]; then
+              cp -a /usr/share/nginx/html/. /target-data/;
+            fi
         volumeMounts:
         - name: nginx-config-volume
           mountPath: /target-config
-      - name: init-populate-webdir
-        image: nginx:latest 
-        command: ["/bin/sh", "-c", "if [ -z \"$(ls -A /target-data)\" ]; then cp -a /usr/share/nginx/html/. /target-data/; fi"]
-        volumeMounts:
-        - name: nginx-config-volume
+        - name: nginx-data-volume
           mountPath: /target-data
       containers:
       - name: nginx
