@@ -1,0 +1,62 @@
+---
+- name: Bereite Nodes für Longhorn vor
+  hosts: kubernetes_nodes  # Nutzt deine übergeordnete Gruppe (Master + Workers)
+  become: true             # Benötigt root-Rechte (sudo)
+  
+  tasks:
+    - name: Paket-Cache aktualisieren (apt-get update)
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Erforderliche Longhorn-Pakete installieren
+      ansible.builtin.apt:
+        name:
+          - open-iscsi
+          - util-linux
+          - cryptsetup
+          - nfs-common
+        state: present
+
+    - name: Sicherstellen, dass der iscsid-Dienst gestartet und aktiviert ist
+      ansible.builtin.systemd:
+        name: iscsid
+        state: started
+        enabled: yes
+
+    - name: Überprüfen, ob open-iscsi korrekt läuft
+      ansible.builtin.command: systemctl is-active iscsid
+      register: iscsid_status
+      changed_when: false
+
+    - name: Status anzeigen
+      ansible.builtin.debug:
+        msg: "Der iscsid-Dienst ist: {{ iscsid_status.stdout }}"
+
+# ZWEITER PLAY: Installiert Longhorn – wird NUR auf dem Master ausgeführt
+- name: Installiere Longhorn Speicher-Infrastruktur
+  hosts: kube_master   # Mapped direkt auf deinen k8s-master-1
+  become: true
+  
+  tasks:
+    - name: Longhorn Manifest aus dem Internet im Cluster anwenden
+      ansible.builtin.command: kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml
+      environment:
+        KUBECONFIG: /root/.kube/config
+      register: longhorn_deploy
+      changed_when: "'created' in longhorn_deploy.stdout or 'configured' in longhorn_deploy.stdout"
+
+    - name: Warte kurz, bis der Namespace erstellt wurde
+      ansible.builtin.pause:
+        seconds: 10
+
+    - name: Status der Longhorn-Pods anzeigen (Zur Kontrolle)
+      ansible.builtin.command: kubectl get pods -n longhorn-system
+      environment:
+        KUBECONFIG: /root/.kube/config
+      register: pods_status
+      changed_when: false
+
+    - name: Pod-Status ausgeben
+      ansible.builtin.debug:
+        var: pods_status.stdout_lines
