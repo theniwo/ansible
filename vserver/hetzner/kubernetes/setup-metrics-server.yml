@@ -1,0 +1,40 @@
+---
+- name: Installiere und konfiguriere K8s Metrics Server
+  hosts: controlplane # Sollte auf deiner K8s-Controlplane (oder deinem Admin-PC) laufen
+  gather_facts: false
+
+  tasks:
+    - name: Lade das offizielle Metrics Server Manifest herunter
+      ansible.builtin.get_url:
+        url: https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+        dest: /tmp/metrics-server-components.yaml
+        mode: '0644'
+
+    - name: Füge das Insecure-TLS Flag für das Hetzner vServer Setup hinzu
+      ansible.builtin.replace:
+        path: /tmp/metrics-server-components.yaml
+        regexp: '- --secure-port=10250'
+        replace: "- --secure-port=10250\n        - --kubelet-insecure-tls"
+
+    - name: Metrics Server im Cluster anwenden
+      kubernetes.core.k8s:
+        state: present
+        src: /tmp/metrics-server-components.yaml
+        # Falls deine Kubeconfig nicht im Standardpfad liegt, hier einkommentieren:
+        # kubeconfig: ~/.kube/config 
+
+    - name: Warte bis der Metrics Server Pod bereit ist
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: kube-system
+        label_selectors:
+          - k8s-app=metrics-server
+      register: pod_info
+      until: "pod_info.resources | length > 0 and (pod_info.resources.0.status.containerStatuses.0.ready | default(false))"
+      retries: 15
+      delay: 10
+
+    - name: Aufräumen der temporären Datei
+      ansible.builtin.file:
+        path: /tmp/metrics-server-components.yaml
+        state: absent
