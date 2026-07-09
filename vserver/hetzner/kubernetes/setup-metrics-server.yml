@@ -1,6 +1,6 @@
 ---
 - name: Installiere und konfiguriere K8s Metrics Server
-  hosts: controlplane # Sollte auf deiner K8s-Controlplane (oder deinem Admin-PC) laufen
+  hosts: kube_master
   gather_facts: false
 
   tasks:
