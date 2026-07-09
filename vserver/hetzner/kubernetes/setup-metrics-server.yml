@@ -1,4 +1,16 @@
 ---
+- name: Installiere Abhängigkeiten
+  hosts: kube_master
+  gather_facts: true
+
+  tasks:
+    - name: Stelle sicher, dass python3-kubernetes installiert ist
+      ansible.builtin.apt:
+        update_cache: yes
+        name: python3-kubernetes
+        state: present
+      become: true 
+
 - name: Installiere und konfiguriere K8s Metrics Server
   hosts: kube_master
   gather_facts: false
@@ -20,8 +32,6 @@
       kubernetes.core.k8s:
         state: present
         src: /tmp/metrics-server-components.yaml
-        # Falls deine Kubeconfig nicht im Standardpfad liegt, hier einkommentieren:
-        # kubeconfig: ~/.kube/config 
 
     - name: Warte bis der Metrics Server Pod bereit ist
       kubernetes.core.k8s_info:
