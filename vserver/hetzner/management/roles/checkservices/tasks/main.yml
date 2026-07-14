@@ -1,4 +1,10 @@
 ---
+- name: "Ensure Kubernetes is running"
+  ansible.builtin.systemd:
+    name: kubelet
+    state: started
+  when: "'kubernetes' in group_names"
+
 - name: "Ensure docker is running"
   ansible.builtin.systemd:
     name: docker

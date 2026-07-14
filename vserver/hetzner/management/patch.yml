@@ -12,5 +12,5 @@
       tags: pause
     - role: docker-restart
       tags: docker-restart
-    #- role: checkservices
-      #tags: checkservices
+    - role: checkservices
+      tags: checkservices

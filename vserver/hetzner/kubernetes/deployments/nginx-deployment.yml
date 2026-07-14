@@ -20,6 +20,45 @@ spec:
       nodePort: 30080 
 
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-config-pvc
+  namespace: nginx
+spec:
+  accessModes: 
+    - ReadWriteMany
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 100Mi 
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-data-pvc
+  namespace: nginx
+spec:
+  accessModes: 
+    - ReadWriteMany
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi 
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-log-pvc
+  namespace: nginx
+spec:
+  accessModes: 
+    - ReadWriteMany
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -83,42 +122,3 @@ spec:
         persistentVolumeClaim:
           claimName: nginx-log-pvc 
 
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: nginx-config-pvc
-  namespace: nginx
-spec:
-  accessModes: 
-    - ReadWriteMany
-  storageClassName: longhorn
-  resources:
-    requests:
-      storage: 100Mi 
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: nginx-data-pvc
-  namespace: nginx
-spec:
-  accessModes: 
-    - ReadWriteMany
-  storageClassName: longhorn
-  resources:
-    requests:
-      storage: 1Gi 
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: nginx-log-pvc
-  namespace: nginx
-spec:
-  accessModes: 
-    - ReadWriteMany
-  storageClassName: longhorn
-  resources:
-    requests:
-      storage: 1Gi
