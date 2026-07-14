@@ -238,3 +238,43 @@
     - name: Worker-Node dem Cluster hinzufügen
       command: "{{ hostvars[groups['kube_master'][0]]['join_command'] }}"
       when: not kubelet_joined.stat.exists
+
+- name: Deployment YAMLs aus Git holen und bereitstellen
+  hosts: kube_master
+  vars:
+    git_repo: "{{ git_repo_k8s }}"
+    git_branch: "master"
+    ordner_im_repo: "vserver/hetzner/kubernetes/deployments"
+    ziel_ordner: "/root/deployments"
+    temp_git_dir: "/tmp/git_temp_deployments"
+
+  tasks:
+    - name: Zielordner auf dem Server sicherstellen
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ziel_ordner }}"
+        - "{{ temp_git_dir }}"
+
+    - name: Repository flach (depth=1) in Temp-Ordner klonen
+      ansible.builtin.git:
+        repo: "{{ git_repo }}"
+        dest: "{{ temp_git_dir }}"
+        version: "{{ git_branch }}"
+        depth: 1
+        # Falls du SSH-Keys nutzt, kannst du hier die Key-Datei angeben:
+        #key_file: "/home/ansible/.ssh/id_rsa"
+
+    - name: Nur die YAML-Dateien aus dem Git-Ordner in das Zielverzeichnis kopieren
+      ansible.builtin.copy:
+        src: "{{ temp_git_dir }}/{{ ordner_im_repo }}/"
+        dest: "{{ ziel_ordner }}/"
+        remote_src: yes # Sagt Ansible, dass die Quelle bereits auf dem Zielserver liegt
+        mode: '0644'
+
+    - name: Temporäres Git-Verzeichnis wieder löschen
+      ansible.builtin.file:
+        path: "{{ temp_git_dir }}"
+        state: absent
