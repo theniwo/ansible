@@ -2,8 +2,12 @@
 - name: Install Helm on Kubernetes Nodes
   hosts: kube_master
   become: true
-  tasks:
+  pre_tasks:
+    - name: "Load variables"
+      ansible.builtin.include_vars:
+        file: k8s.yml
 
+  tasks:
     - name: Install required system packages
       apt:
         name:
