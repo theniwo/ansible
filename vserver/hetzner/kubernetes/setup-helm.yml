@@ -1,0 +1,48 @@
+---
+- name: Install Helm on Kubernetes Nodes
+  hosts: kube_master
+  become: true
+  tasks:
+
+    - name: Install required system packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: yes
+
+    - name: Create keyring directory
+      file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Helm GPG signing key
+      apt_key:
+        url: https://packages.buildkite.com/helm-linux/helm-debian/gpgkey
+        state: present
+        keyring: /usr/share/keyrings/helm.gpg
+
+    - name: Add Helm APT repository
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main"
+        state: present
+        filename: helm-stable-debian
+
+    - name: Install Helm
+      apt:
+        name: helm
+        state: present
+        update_cache: yes
+
+    - name: Verify Helm installation
+      command: helm version
+      register: helm_version_output
+      changed_when: false
+
+    - name: Show Helm version
+      debug:
+        msg: "Installed {{ helm_version_output.stdout }}"
