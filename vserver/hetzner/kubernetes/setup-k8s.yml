@@ -2,6 +2,10 @@
 - name: Vorbereitung und Installation aller Kubernetes Nodes
   hosts: kubernetes_nodes
   become: true
+  pre_tasks:
+    - name: "Load variables"
+      ansible.builtin.include_vars:
+        file: k8s.yml
   tasks:
     - name: Paketquellen aktualisieren
       apt:
@@ -95,14 +99,14 @@
 
     - name: Kubernetes GPG-Schlüssel herunterladen (de-armored)
       shell: |
-        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
       args:
         creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
     - name: Kubernetes Repository via Datei hinzufügen
       copy:
         dest: /etc/apt/sources.list.d/kubernetes.list
-        content: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /\n"
+        content: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/ /\n"
         mode: '0644'
 
     - name: Kubernetes-Komponenten installieren
@@ -242,10 +246,6 @@
 - name: Deployment YAMLs aus Git holen und bereitstellen
   hosts: kube_master
   vars:
-    git_repo: "{{ git_repo_k8s }}"
-    git_branch: "master"
-    ordner_im_repo: "vserver/hetzner/kubernetes/deployments"
-    ziel_ordner: "/root/deployments"
     temp_git_dir: "/tmp/git_temp_deployments"
 
   tasks:
@@ -255,7 +255,7 @@
         state: directory
         mode: '0755'
       loop:
-        - "{{ ziel_ordner }}"
+        - "{{ dest_dir }}"
         - "{{ temp_git_dir }}"
 
     - name: Repository flach (depth=1) in Temp-Ordner klonen
@@ -269,8 +269,8 @@
 
     - name: Nur die YAML-Dateien aus dem Git-Ordner in das Zielverzeichnis kopieren
       ansible.builtin.copy:
-        src: "{{ temp_git_dir }}/{{ ordner_im_repo }}/"
-        dest: "{{ ziel_ordner }}/"
+        src: "{{ temp_git_dir }}/{{ repo_dir }}/"
+        dest: "{{ dest_dir }}/"
         remote_src: yes # Sagt Ansible, dass die Quelle bereits auf dem Zielserver liegt
         mode: '0644'
 

@@ -1,0 +1,5 @@
+k8s_version: 1.35
+git_repo: https://github.com/theniwo/ansible
+git_branch: master
+repo_dir: vserver/hetzner/kubernetes/deployments
+dest_dir: /root/deployments
