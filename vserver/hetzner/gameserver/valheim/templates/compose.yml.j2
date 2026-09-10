@@ -1,0 +1,15 @@
+---
+services:
+  app:
+    image: ghcr.io/community-valheim-tools/valheim-server:latest
+    restart: unless-stopped
+    cap_add:
+      - SYS_NICE
+    stop_grace_period: 2m
+    ports:
+      - "{{ valheim_port }}-{{ valheim_port + 1 }}:{{ valheim_port }}-{{ valheim_port + 1 }}/udp"
+    volumes:
+      - "{{ valheim_config_dir }}:/config"
+      - "{{ valheim_data_dir }}:/opt/valheim"
+    env_file:
+      - valheim.env

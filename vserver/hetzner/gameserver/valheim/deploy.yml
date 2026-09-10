@@ -1,0 +1,82 @@
+---
+- name: Deploy Valheim Server
+  hosts: valheim
+  become: true
+
+  vars_files:
+    - group_vars/vault.yml
+
+  tasks:
+
+    - name: Check if Docker is installed
+      ansible.builtin.command:
+        cmd: docker --version
+      register: docker_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Docker if missing
+      ansible.builtin.package:
+        name:
+          - docker.io
+        state: present
+      when: docker_check.rc != 0
+
+    - name: Ensure Docker service is running and enabled
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Check if Docker Compose v2 is available
+      ansible.builtin.command:
+        cmd: docker compose version
+      register: compose_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if Docker Compose v2 is missing
+      ansible.builtin.fail:
+        msg: >
+          Docker is installed, but Docker Compose v2 is not available.
+          Please install the Docker Compose plugin on this host.
+      when: compose_check.rc != 0
+
+    - name: Create Valheim directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - "{{ valheim_base_dir }}"
+        - "{{ valheim_config_dir }}"
+        - "{{ valheim_data_dir }}"
+
+    - name: Deploy Docker Compose configuration
+      ansible.builtin.template:
+        src: templates/compose.yml.j2
+        dest: "{{ valheim_base_dir }}/compose.yml"
+        owner: root
+        group: root
+        mode: "0644"
+      register: compose_config
+
+    - name: Deploy Valheim environment
+      ansible.builtin.template:
+        src: templates/valheim.env.j2
+        dest: "{{ valheim_base_dir }}/valheim.env"
+        owner: root
+        group: root
+        mode: "0600"
+      register: valheim_environment
+      no_log: true
+
+    - name: Deploy Valheim container
+      community.docker.docker_compose_v2:
+        project_src: "{{ valheim_base_dir }}"
+        files:
+          - compose.yml
+        state: present
+        pull: missing

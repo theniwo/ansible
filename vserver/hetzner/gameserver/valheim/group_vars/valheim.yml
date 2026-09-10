@@ -1,0 +1,17 @@
+---
+valheim_server_name: "Nils Valheim Server"
+valheim_world_name: "Midgard"
+
+valheim_server_public: true
+valheim_crossplay: false
+
+valheim_port: 2456
+
+valheim_base_dir: /opt/valheim
+valheim_config_dir: "{{ valheim_base_dir }}/config"
+valheim_data_dir: "{{ valheim_base_dir }}/data"
+
+# SteamID64, falls gewünscht
+valheim_admin_ids:
+  - "76561198000000000"
+
