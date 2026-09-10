@@ -53,6 +53,23 @@
         - "{{ valheim_base_dir }}"
         - "{{ valheim_config_dir }}"
         - "{{ valheim_data_dir }}"
+        - "{{ valheim_bepinex_plugins_dir }}"
+
+    - name: Deploy Valheim mod synchronisation script
+      ansible.builtin.copy:
+        src: files/valheim_mod_sync.py
+        dest: "{{ valheim_base_dir }}/valheim_mod_sync.py"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy pinned Valheim mod manifest
+      ansible.builtin.template:
+        src: templates/mods.json.j2
+        dest: "{{ valheim_mod_manifest_path }}"
+        owner: root
+        group: root
+        mode: "0644"
 
     - name: Deploy Docker Compose configuration
       ansible.builtin.template:
@@ -80,3 +97,27 @@
           - compose.yml
         state: present
         pull: missing
+
+    - name: Synchronise pinned Thunderstore mods
+      ansible.builtin.command:
+        argv:
+          - "{{ valheim_base_dir }}/valheim_mod_sync.py"
+          - "--manifest"
+          - "{{ valheim_mod_manifest_path }}"
+          - "--plugins-dir"
+          - "{{ valheim_bepinex_plugins_dir }}"
+      register: valheim_mod_sync
+      changed_when: (valheim_mod_sync.stdout | from_json).changed
+      notify: Restart Valheim container
+
+  handlers:
+    - name: Restart Valheim container
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-directory
+          - "{{ valheim_base_dir }}"
+          - restart
+          - app
+      changed_when: true
