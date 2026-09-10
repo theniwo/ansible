@@ -11,7 +11,17 @@ valheim_base_dir: /opt/valheim
 valheim_config_dir: "{{ valheim_base_dir }}/config"
 valheim_data_dir: "{{ valheim_base_dir }}/data"
 
+valheim_bepinex_plugins_dir: "{{ valheim_config_dir }}/bepinex/plugins"
+valheim_mod_manifest_path: "{{ valheim_base_dir }}/mods.json"
+
+# Thunderstore-Mods werden immer auf eine konkrete Version gepinnt. Abhaengigkeiten
+# werden vom Synchronisationsskript rekursiv in genau der von Thunderstore
+# angegebenen Version aufgeloest.
+valheim_mods: []
+#  - namespace: Azumatt
+#    name: AzuCraftyBoxes
+#    version: 1.6.2
+
 # SteamID64, falls gewünscht
 valheim_admin_ids:
   - "76561198000000000"
-
