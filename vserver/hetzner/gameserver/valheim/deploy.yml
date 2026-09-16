@@ -53,7 +53,52 @@
         - "{{ valheim_base_dir }}"
         - "{{ valheim_config_dir }}"
         - "{{ valheim_data_dir }}"
+        - "{{ valheim_worlds_dir }}"
         - "{{ valheim_bepinex_plugins_dir }}"
+
+    - name: Deploy Valheim world creation helper
+      ansible.builtin.copy:
+        src: files/valheim_mkworld.py
+        dest: /usr/local/bin/valheim-mkworld
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Validate custom Valheim world seed
+      ansible.builtin.assert:
+        that:
+          - valheim_world_seed is string
+          - valheim_world_seed is match('^[A-Za-z0-9]{1,10}$')
+        fail_msg: >-
+          valheim_world_seed must contain 1 to 10 ASCII letters or digits.
+          Leave it empty or null to let Valheim generate the world.
+      when:
+        - valheim_world_seed is not none
+        - valheim_world_seed | string | length > 0
+
+    - name: Check whether the Valheim world already exists
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ valheim_worlds_dir }}/{{ valheim_world_name }}"
+        - "{{ valheim_worlds_dir }}/{{ valheim_world_name }}.fwl"
+        - "{{ valheim_worlds_dir }}/{{ valheim_world_name }}.db"
+      register: valheim_world_files
+      when:
+        - valheim_world_seed is not none
+        - valheim_world_seed | string | length > 0
+
+    - name: Create initial Valheim world metadata with custom seed
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/valheim-mkworld
+          - "{{ valheim_world_name }}"
+          - "{{ valheim_world_seed }}"
+          - "{{ valheim_worlds_dir }}/{{ valheim_world_name }}.fwl"
+      when:
+        - valheim_world_seed is not none
+        - valheim_world_seed | string | length > 0
+        - not (valheim_world_files.results | selectattr('stat.exists') | list | length)
 
     - name: Deploy Valheim mod synchronisation script
       ansible.builtin.copy:
@@ -107,7 +152,12 @@
           - "--plugins-dir"
           - "{{ valheim_bepinex_plugins_dir }}"
       register: valheim_mod_sync
-      changed_when: (valheim_mod_sync.stdout | from_json).changed
+      # Do not try to parse stdout when the synchroniser failed. This keeps its
+      # actionable stderr (for example, the unsupported patchers/ message)
+      # visible instead of replacing it with a Jinja JSON parsing error.
+      changed_when: >-
+        valheim_mod_sync.rc == 0 and
+        (valheim_mod_sync.stdout | from_json).changed
       notify: Restart Valheim container
 
   handlers:
