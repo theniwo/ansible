@@ -2,6 +2,10 @@
 valheim_server_name: "Nils Valheim Server"
 valheim_world_name: "Midgard"
 
+# Optional custom seed.
+# Leave empty/null to let Valheim generate the world normally.
+valheim_world_seed: "Meadows42"
+
 valheim_server_public: true
 valheim_crossplay: false
 
@@ -10,6 +14,7 @@ valheim_port: 2456
 valheim_base_dir: /opt/valheim
 valheim_config_dir: "{{ valheim_base_dir }}/config"
 valheim_data_dir: "{{ valheim_base_dir }}/data"
+valheim_worlds_dir: "{{ valheim_config_dir }}/worlds_local"
 
 valheim_bepinex_plugins_dir: "{{ valheim_config_dir }}/bepinex/plugins"
 valheim_mod_manifest_path: "{{ valheim_base_dir }}/mods.json"
