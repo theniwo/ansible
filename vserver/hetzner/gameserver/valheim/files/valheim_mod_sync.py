@@ -15,7 +15,9 @@ import zipfile
 API_URL = "https://thunderstore.io/api/experimental/package/{namespace}/{name}/{version}/"
 MARKER = ".ansible-valheim-mod.json"
 IGNORED_PACKAGE = ("denikson", "BepInExPack_Valheim")
-DEPENDENCY_RE = re.compile(r"^([^-]+)-(.+)-([0-9][0-9A-Za-z.+-]*)$")
+IGNORED_PACKAGE_KEY = tuple(value.casefold() for value in IGNORED_PACKAGE)
+VERSION_PATTERN = r"[0-9]+\.[0-9]+\.[0-9]+"
+DEPENDENCY_RE = re.compile(rf"^([^-]+)-(.+)-({VERSION_PATTERN})$")
 
 
 class SyncError(RuntimeError):
@@ -23,8 +25,9 @@ class SyncError(RuntimeError):
 
 
 def request_json(url):
+    request = urllib.request.Request(url, headers={"User-Agent": "ansible-valheim-mod-sync/1"})
     try:
-        with urllib.request.urlopen(url, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=30) as response:
             return json.load(response)
     except (urllib.error.URLError, json.JSONDecodeError) as exc:
         raise SyncError(f"Thunderstore-Anfrage fehlgeschlagen ({url}): {exc}") from exc
@@ -42,7 +45,7 @@ def validate_package(package, source):
     for field in ("namespace", "name"):
         if not re.fullmatch(r"[A-Za-z0-9_.]+", str(package[field])):
             raise SyncError(f"Ungueltiges {field} in {source}: {package[field]!r}")
-    if version.lower() == "latest" or not re.fullmatch(r"[0-9][0-9A-Za-z.+-]*", version):
+    if not re.fullmatch(VERSION_PATTERN, version):
         raise SyncError(f"Ungueltige, nicht exakt gepinnte Version in {source}: {version!r}")
     return {"namespace": str(package["namespace"]), "name": str(package["name"]), "version": version}
 
@@ -60,7 +63,7 @@ def resolve(requested):
     while pending:
         package = validate_package(pending.pop(), "Mod/Dependency")
         key = package_key(package)
-        if key == IGNORED_PACKAGE:
+        if tuple(value.casefold() for value in key) == IGNORED_PACKAGE_KEY:
             continue
         previous = resolved.get(key)
         if previous:
