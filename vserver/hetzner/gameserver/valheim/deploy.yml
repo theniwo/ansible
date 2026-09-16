@@ -107,7 +107,12 @@
           - "--plugins-dir"
           - "{{ valheim_bepinex_plugins_dir }}"
       register: valheim_mod_sync
-      changed_when: (valheim_mod_sync.stdout | from_json).changed
+      # Do not try to parse stdout when the synchroniser failed. This keeps its
+      # actionable stderr (for example, the unsupported patchers/ message)
+      # visible instead of replacing it with a Jinja JSON parsing error.
+      changed_when: >-
+        valheim_mod_sync.rc == 0 and
+        (valheim_mod_sync.stdout | from_json).changed
       notify: Restart Valheim container
 
   handlers:
