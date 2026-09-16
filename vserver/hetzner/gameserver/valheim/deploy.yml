@@ -42,7 +42,12 @@
           Please install the Docker Compose plugin on this host.
       when: compose_check.rc != 0
 
-    - name: Create Valheim directories
+    - name: Create persistent Valheim config volume
+      community.docker.docker_volume:
+        name: "{{ valheim_config_volume_name }}"
+        state: present
+
+    - name: Create Valheim base directories
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
@@ -51,10 +56,89 @@
         mode: "0755"
       loop:
         - "{{ valheim_base_dir }}"
-        - "{{ valheim_config_dir }}"
         - "{{ valheim_data_dir }}"
+
+    - name: Check for legacy Valheim config directory
+      ansible.builtin.stat:
+        path: "{{ valheim_legacy_config_dir }}"
+      register: valheim_legacy_config
+      when: valheim_legacy_config_dir != valheim_config_dir
+
+    - name: Inspect legacy Valheim config directory
+      ansible.builtin.find:
+        paths: "{{ valheim_legacy_config_dir }}"
+        file_type: any
+        hidden: true
+        recurse: false
+      register: valheim_legacy_config_files
+      when:
+        - valheim_legacy_config_dir != valheim_config_dir
+        - valheim_legacy_config.stat.isdir | default(false)
+
+    - name: Inspect persistent Valheim config volume
+      ansible.builtin.find:
+        paths: "{{ valheim_config_dir }}"
+        file_type: any
+        hidden: true
+        recurse: false
+      register: valheim_volume_config_files
+
+    - name: Migrate existing config into the persistent Docker volume
+      ansible.builtin.command:
+        argv:
+          - cp
+          - --archive
+          - "{{ valheim_legacy_config_dir }}/."
+          - "{{ valheim_config_dir }}/"
+      when:
+        - valheim_legacy_config_dir != valheim_config_dir
+        - valheim_legacy_config_files.matched | default(0) | int > 0
+        - valheim_volume_config_files.matched | int == 0
+
+    - name: Create Valheim config directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - "{{ valheim_config_dir }}"
         - "{{ valheim_worlds_dir }}"
         - "{{ valheim_bepinex_plugins_dir }}"
+
+    - name: Check for legacy standalone worlds volume
+      ansible.builtin.stat:
+        path: "{{ valheim_legacy_worlds_volume_dir }}"
+      register: valheim_legacy_worlds_volume
+
+    - name: Inspect legacy standalone worlds volume
+      ansible.builtin.find:
+        paths: "{{ valheim_legacy_worlds_volume_dir }}"
+        file_type: any
+        hidden: true
+        recurse: false
+      register: valheim_legacy_volume_world_files
+      when: valheim_legacy_worlds_volume.stat.isdir | default(false)
+
+    - name: Inspect worlds directory in config volume
+      ansible.builtin.find:
+        paths: "{{ valheim_worlds_dir }}"
+        file_type: any
+        hidden: true
+        recurse: false
+      register: valheim_config_world_files
+
+    - name: Migrate legacy standalone worlds volume into config volume
+      ansible.builtin.command:
+        argv:
+          - cp
+          - --archive
+          - "{{ valheim_legacy_worlds_volume_dir }}/."
+          - "{{ valheim_worlds_dir }}/"
+      when:
+        - valheim_legacy_volume_world_files.matched | default(0) | int > 0
+        - valheim_config_world_files.matched | int == 0
 
     - name: Deploy Valheim world creation helper
       ansible.builtin.copy:

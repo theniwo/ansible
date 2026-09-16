@@ -12,8 +12,11 @@ valheim_crossplay: false
 valheim_port: 2456
 
 valheim_base_dir: /opt/valheim
-valheim_config_dir: "{{ valheim_base_dir }}/config"
 valheim_data_dir: "{{ valheim_base_dir }}/data"
+valheim_config_volume_name: valheim-config
+valheim_config_dir: "/var/lib/docker/volumes/{{ valheim_config_volume_name }}/_data"
+valheim_legacy_config_dir: "{{ valheim_base_dir }}/config"
+valheim_legacy_worlds_volume_dir: /var/lib/docker/volumes/valheim-worlds/_data
 valheim_worlds_dir: "{{ valheim_config_dir }}/worlds_local"
 
 valheim_bepinex_plugins_dir: "{{ valheim_config_dir }}/bepinex/plugins"
