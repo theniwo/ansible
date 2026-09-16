@@ -4,7 +4,7 @@ valheim_world_name: "Midgard"
 
 # Optional custom seed.
 # Leave empty/null to let Valheim generate the world normally.
-valheim_world_seed: "Meadows42"
+valheim_world_seed: "Vaaltorin"
 
 valheim_server_public: true
 valheim_crossplay: false
