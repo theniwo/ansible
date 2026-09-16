@@ -9,7 +9,11 @@ services:
     ports:
       - "{{ valheim_port }}-{{ valheim_port + 1 }}:{{ valheim_port }}-{{ valheim_port + 1 }}/udp"
     volumes:
-      - "{{ valheim_config_dir }}:/config"
+      - valheim_config:/config
       - "{{ valheim_data_dir }}:/opt/valheim"
     env_file:
       - valheim.env
+
+volumes:
+  valheim_config:
+    name: "{{ valheim_config_volume_name }}"
