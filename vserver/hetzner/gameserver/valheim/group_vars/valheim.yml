@@ -6,6 +6,14 @@ valheim_world_name: "Midgard"
 # Leave empty/null to let Valheim generate the world normally.
 valheim_world_seed: "Vaaltorin"
 
+# World modifiers applied when the server starts.
+valheim_world_modifiers:
+  resources: muchmore # 2x
+  deathpenalty: casual
+  combat: easy
+  raids: muchless
+  portals: casual
+
 valheim_server_public: true
 valheim_crossplay: false
 
